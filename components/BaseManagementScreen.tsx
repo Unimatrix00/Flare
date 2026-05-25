@@ -1,71 +1,115 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { BaseSection, BaseSectionId, ConstructionState } from "@/lib/base-data";
-import { TRAVEL_MINUTES_PER_HEX, baseSections, formatDuration } from "@/lib/base-data";
-import type { Faction, ResourceMap, Specialist } from "@/lib/game-data";
+import {
+  buildingDefinitions,
+  buildingLevelRuleByLevel,
+  type BuildingDefinition,
+  type BuildingId,
+} from "@/lib/game/buildings";
+import {
+  calculateBuildingOutput,
+  getDroneBonusPercent,
+  getHeroBonusPercent,
+  getWorkerDroneCountForBaseLevel,
+} from "@/lib/game/economy";
+import type { ResourceAmount, ResourceId } from "@/lib/game/resources";
 import { resourceLabels } from "@/lib/game-data";
+import type { Specialist, SpecialistId } from "@/lib/game-data";
+import { specialistById } from "@/lib/game/specialists";
 import { tileById } from "@/lib/tile-data";
-import { getHexDistance, type WorldHex } from "@/lib/world-map";
+import type { WorldHex } from "@/lib/world-map";
 import { GameButton } from "./ui/GameButton";
 import { Panel } from "./ui/Panel";
 
-type BaseManagementScreenProps = {
-  commanderName: string;
-  faction: Faction;
-  specialists: Specialist[];
-  crashSite: WorldHex;
-  resources: ResourceMap;
-  construction: ConstructionState;
-  onOpenMap: () => void;
-  onStartConstruction: (section: BaseSection) => void;
-  onReset: () => void;
+export type BuildingAssignment = {
+  droneCount: number;
+  specialistId?: SpecialistId;
 };
 
-const resourceKeys = ["energy", "alloy", "data", "blueprints", "food"] as const;
+export type BuildingAssignments = Partial<Record<BuildingId, BuildingAssignment>>;
+
+export type BuildingLevels = Partial<Record<BuildingId, 1 | 2 | 3>>;
+
+export type ProductionLogEntry = {
+  cycle: number;
+  lines: string[];
+};
+
+type BaseManagementScreenProps = {
+  commanderName: string;
+  factionName: string;
+  factionBonus: string;
+  specialists: Specialist[];
+  crashSite: WorldHex;
+  baseLevel: number;
+  resources: ResourceAmount;
+  buildingLevels: BuildingLevels;
+  assignments: BuildingAssignments;
+  productionLog?: ProductionLogEntry;
+  onAddDrone: (buildingId: BuildingId) => void;
+  onAssignSpecialist: (buildingId: BuildingId, specialistId?: SpecialistId) => void;
+  onOpenMap: () => void;
+  onRemoveDrone: (buildingId: BuildingId) => void;
+  onReset: () => void;
+  onRunProduction: () => void;
+  onUpgradeCommandCore: () => void;
+};
+
+const dashboardResourceKeys: ResourceId[] = ["energy", "alloy", "data", "food"];
+const commandCoreLevelTwoCost: Partial<ResourceAmount> = {
+  alloy: 500,
+  energy: 200,
+  data: 100,
+};
 
 export function BaseManagementScreen({
   commanderName,
-  faction,
+  factionName,
+  factionBonus,
   specialists,
   crashSite,
+  baseLevel,
   resources,
-  construction,
+  buildingLevels,
+  assignments,
+  productionLog,
+  onAddDrone,
+  onAssignSpecialist,
   onOpenMap,
-  onStartConstruction,
+  onRemoveDrone,
   onReset,
+  onRunProduction,
+  onUpgradeCommandCore,
 }: BaseManagementScreenProps) {
-  const [now, setNow] = useState(() => Date.now());
-  const gateDistance = getHexDistance(crashSite, { q: 0, r: 0 });
-  const gateTravelMinutes = gateDistance * TRAVEL_MINUTES_PER_HEX;
-  const completedSections = useMemo(
-    () =>
-      baseSections.filter((section) => {
-        const task = construction[section.id];
-        return task && now - task.startedAt >= task.durationMs;
-      }).length,
-    [construction, now],
+  const totalWorkerDrones = getWorkerDroneCountForBaseLevel(baseLevel);
+  const assignedWorkerDrones = Object.values(assignments).reduce(
+    (total, assignment) => total + (assignment?.droneCount ?? 0),
+    0,
   );
-
-  useEffect(() => {
-    const interval = window.setInterval(() => setNow(Date.now()), 1000);
-
-    return () => window.clearInterval(interval);
-  }, []);
+  const availableWorkerDrones = totalWorkerDrones - assignedWorkerDrones;
+  const assignedSpecialistIds = new Set(
+    Object.values(assignments)
+      .map((assignment) => assignment?.specialistId)
+      .filter(Boolean),
+  );
+  const canUpgradeCommandCore =
+    (buildingLevels.command_core ?? 1) === 1 &&
+    (resources.alloy ?? 0) >= (commandCoreLevelTwoCost.alloy ?? 0) &&
+    (resources.energy ?? 0) >= (commandCoreLevelTwoCost.energy ?? 0) &&
+    (resources.data ?? 0) >= (commandCoreLevelTwoCost.data ?? 0);
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-[1500px] px-4 py-5 lg:px-6">
+    <main className="mx-auto min-h-screen w-full max-w-[1600px] px-4 py-5 lg:px-6">
       <div className="mb-5 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.45em] text-cyan-200">
-            Base tab / tutorial active
+            Colony dashboard / Economy loop
           </p>
           <h1 className="mt-3 text-4xl font-black uppercase tracking-[-0.05em] text-white sm:text-6xl">
-            Starter base online
+            Command core level {baseLevel}
           </h1>
           <p className="mt-3 text-sm leading-6 text-slate-300">
-            {commanderName}, your core hex at {crashSite.q}:{crashSite.r} was built instantly.
-            Improve the six base sections next.
+            Commander {commanderName} controls a {factionName} base at hex {crashSite.q}:{crashSite.r}.
           </p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
@@ -76,147 +120,256 @@ export function BaseManagementScreen({
         </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[0.78fr_1.22fr]">
-        <div className="space-y-5">
-          <Panel intensity="strong" className="p-6">
-            <p className="text-xs font-bold uppercase tracking-[0.32em] text-orange-200">
-              Tutorial objective
-            </p>
-            <h2 className="mt-4 text-2xl font-black uppercase text-white">
-              Upgrade one starter section
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-slate-300">
-              The starter base is instant. Every section improvement uses real-time construction
-              timers like Last War: Survival.
-            </p>
-            <div className="mt-5 rounded-2xl border border-cyan-200/20 bg-cyan-300/10 p-4 text-sm font-semibold text-cyan-100">
-              {completedSections}/6 sections improved
-            </div>
-          </Panel>
+      <div className="mb-5 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <Panel intensity="strong" className="p-5">
+          <div className="grid gap-4 md:grid-cols-4">
+            <Stat label="Faction" value={factionName} />
+            <Stat label="Crash terrain" value={tileById[crashSite.terrain].displayName} />
+            <Stat label="Worker drones" value={`${availableWorkerDrones}/${totalWorkerDrones} free`} />
+            <Stat label="Specialists" value={specialists.map((specialist) => specialist.name).join(", ")} />
+          </div>
+          <p className="mt-4 rounded-2xl border border-cyan-200/15 bg-cyan-300/10 p-4 text-sm font-semibold leading-6 text-cyan-100">
+            {factionBonus}
+          </p>
+        </Panel>
 
-          <Panel className="p-6">
-            <p className="text-xs font-bold uppercase tracking-[0.32em] text-cyan-200">
-              Commander setup
-            </p>
-            <div className="mt-5 space-y-4 text-sm text-slate-300">
-              <InfoRow label="Faction" value={faction.name} />
-              <InfoRow label="Crash hex" value={`${crashSite.q}:${crashSite.r}`} />
-              <InfoRow label="Terrain" value={tileById[crashSite.terrain].displayName} />
-              <InfoRow label="Specialists" value={specialists.map((specialist) => specialist.name).join(", ")} />
-            </div>
-          </Panel>
-
-          <Panel className="p-6">
-            <p className="text-xs font-bold uppercase tracking-[0.32em] text-orange-200">
-              Time rules
-            </p>
-            <div className="mt-5 space-y-3 text-sm leading-6 text-slate-300">
-              <p>Base core: instant when the player confirms the crash site.</p>
-              <p>Base sections: real-time timers from 1h to 3h.</p>
-              <p>Map movement: {TRAVEL_MINUTES_PER_HEX}m per hex.</p>
-              <p>
-                Distance to FLARE Gate: {gateDistance} hexes / {formatDuration(gateTravelMinutes * 60000)} travel.
+        <Panel className="p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.28em] text-orange-200">
+                Command Core upgrade
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                Level 2 costs 500 Alloy, 200 Energy, and 100 Data. Upgrade grants +2 Worker Drones.
               </p>
             </div>
-          </Panel>
+            <GameButton
+              disabled={!canUpgradeCommandCore}
+              onClick={onUpgradeCommandCore}
+              variant={(buildingLevels.command_core ?? 1) >= 2 ? "ghost" : "secondary"}
+            >
+              {(buildingLevels.command_core ?? 1) >= 2 ? "Level 2 online" : "Upgrade Command Core"}
+            </GameButton>
+          </div>
+        </Panel>
+      </div>
 
-          <Panel className="p-6">
-            <p className="text-xs font-bold uppercase tracking-[0.32em] text-cyan-200">
+      <div className="mb-5 grid gap-4 lg:grid-cols-[0.55fr_1.45fr]">
+        <div className="space-y-4">
+          <Panel className="p-5">
+            <p className="text-xs font-bold uppercase tracking-[0.28em] text-cyan-200">
               Resources
             </p>
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              {resourceKeys.map((key) => (
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              {dashboardResourceKeys.map((key) => (
                 <div key={key} className="rounded-2xl border border-white/10 bg-black/25 p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
                     {resourceLabels[key]}
                   </p>
-                  <p className="mt-2 text-3xl font-black text-white">{resources[key]}</p>
+                  <p className="mt-2 text-3xl font-black text-white">{Math.floor(resources[key])}</p>
                 </div>
               ))}
             </div>
           </Panel>
+
+          <Panel className="p-5">
+            <div className="flex flex-col gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.28em] text-orange-200">
+                  Production cycle
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-300">
+                  Adds each building&apos;s calculated hourly output once. Bonuses are additive.
+                </p>
+              </div>
+              <GameButton onClick={onRunProduction}>Run Production Cycle</GameButton>
+            </div>
+            {productionLog && (
+              <div className="mt-4 rounded-2xl border border-cyan-200/15 bg-cyan-300/10 p-4 text-sm text-cyan-100">
+                <p className="font-bold uppercase tracking-[0.2em]">Cycle {productionLog.cycle}</p>
+                <div className="mt-3 space-y-2">
+                  {productionLog.lines.map((line) => (
+                    <p key={line}>{line}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Panel>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          {baseSections.map((section, index) => (
-            <BaseSectionCard
-              key={section.id}
-              index={index}
-              now={now}
-              onStartConstruction={onStartConstruction}
-              section={section}
-              task={construction[section.id]}
-            />
-          ))}
+        <div className="grid gap-4 xl:grid-cols-2">
+          {buildingDefinitions
+            .filter((building) => building.unlocksAtBaseLevel <= baseLevel)
+            .map((building) => (
+              <BuildingCard
+                key={building.id}
+                assignment={assignments[building.id]}
+                availableWorkerDrones={availableWorkerDrones}
+                building={building}
+                buildingLevel={buildingLevels[building.id] ?? 1}
+                onAddDrone={onAddDrone}
+                onAssignSpecialist={onAssignSpecialist}
+                onRemoveDrone={onRemoveDrone}
+                selectedSpecialistIds={assignedSpecialistIds}
+                specialists={specialists}
+              />
+            ))}
         </div>
       </div>
     </main>
   );
 }
 
-function BaseSectionCard({
-  index,
-  now,
-  onStartConstruction,
-  section,
-  task,
+function BuildingCard({
+  assignment,
+  availableWorkerDrones,
+  building,
+  buildingLevel,
+  onAddDrone,
+  onAssignSpecialist,
+  onRemoveDrone,
+  selectedSpecialistIds,
+  specialists,
 }: {
-  index: number;
-  now: number;
-  onStartConstruction: (section: BaseSection) => void;
-  section: BaseSection;
-  task?: ConstructionState[BaseSectionId];
+  assignment?: BuildingAssignment;
+  availableWorkerDrones: number;
+  building: BuildingDefinition;
+  buildingLevel: 1 | 2 | 3;
+  onAddDrone: (buildingId: BuildingId) => void;
+  onAssignSpecialist: (buildingId: BuildingId, specialistId?: SpecialistId) => void;
+  onRemoveDrone: (buildingId: BuildingId) => void;
+  selectedSpecialistIds: Set<SpecialistId | undefined>;
+  specialists: Specialist[];
 }) {
-  const durationMs = section.buildHours * 60 * 60 * 1000;
-  const elapsedMs = task ? now - task.startedAt : 0;
-  const remainingMs = Math.max(0, (task?.durationMs ?? durationMs) - elapsedMs);
-  const progress = task ? Math.min(100, Math.round((elapsedMs / task.durationMs) * 100)) : 0;
-  const isComplete = Boolean(task && remainingMs === 0);
-  const isBuilding = Boolean(task && remainingMs > 0);
+  const droneCount = assignment?.droneCount ?? 0;
+  const assignedSpecialistId = assignment?.specialistId;
+  const assignedSpecialist = assignedSpecialistId ? specialistById[assignedSpecialistId] : undefined;
+  const droneSlots = buildingLevelRuleByLevel[buildingLevel].droneSlots;
+  const baseOutput = building.baseOutputPerHour ?? {};
+  const finalOutput = calculateBuildingOutput({
+    buildingId: building.id,
+    buildingLevel,
+    baseOutputPerHour: baseOutput,
+    assignedWorkerDrones: droneCount,
+    assignedSpecialistId,
+  });
+  const droneBonus = getDroneBonusPercent(droneCount, buildingLevel);
+  const heroBonus = getHeroBonusPercent({ buildingId: building.id, specialistId: assignedSpecialistId });
+  const isCorrectSpecialist = assignedSpecialist?.bestBuildingIds.includes(building.id) ?? false;
 
   return (
-    <Panel intensity={index === 0 ? "strong" : "soft"} className="flex h-full flex-col p-5">
+    <Panel intensity={building.id === "command_core" ? "strong" : "soft"} className="flex h-full flex-col p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.28em] text-cyan-200">{section.role}</p>
-          <h3 className="mt-3 text-2xl font-black uppercase text-white">{section.name}</h3>
+          <p className="text-xs font-bold uppercase tracking-[0.28em] text-cyan-200">
+            Level {buildingLevel}
+          </p>
+          <h3 className="mt-3 text-2xl font-black uppercase text-white">{building.displayName}</h3>
         </div>
         <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-300">
-          Slot {index + 1}
+          {droneCount}/{droneSlots} drones
         </span>
       </div>
-      <p className="mt-4 flex-1 text-sm leading-6 text-slate-300">{section.description}</p>
+      <p className="mt-3 text-sm leading-6 text-slate-300">{building.purpose}</p>
 
-      <div className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4">
-        <div className="flex justify-between text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-          <span>{isComplete ? "Complete" : isBuilding ? "Building" : "Upgrade time"}</span>
-          <span>{isBuilding ? formatDuration(remainingMs) : formatDuration(durationMs)}</span>
-        </div>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-          <div
-            className="h-full rounded-full bg-cyan-300 shadow-[0_0_18px_rgba(78,199,255,0.45)]"
-            style={{ width: `${isComplete ? 100 : progress}%` }}
-          />
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <OutputPanel label="Base output" output={baseOutput} />
+        <OutputPanel label="Final output" output={finalOutput} highlight />
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
+              Worker drones
+            </p>
+            <p className="mt-1 text-sm font-semibold text-cyan-100">+{droneBonus}% output</p>
+          </div>
+          <div className="flex gap-2">
+            <GameButton
+              disabled={droneCount === 0}
+              onClick={() => onRemoveDrone(building.id)}
+              variant="ghost"
+            >
+              - Drone
+            </GameButton>
+            <GameButton
+              disabled={availableWorkerDrones <= 0 || droneCount >= droneSlots}
+              onClick={() => onAddDrone(building.id)}
+              variant="secondary"
+            >
+              + Drone
+            </GameButton>
+          </div>
         </div>
       </div>
 
-      <GameButton
-        className="mt-5 w-full"
-        disabled={Boolean(task)}
-        onClick={() => onStartConstruction(section)}
-        variant={isComplete ? "ghost" : "secondary"}
-      >
-        {isComplete ? "Level 2 ready" : isBuilding ? "Construction active" : `Start ${formatDuration(durationMs)}`}
-      </GameButton>
+      <div className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-4">
+        <label className="block">
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
+            Assigned specialist
+          </span>
+          <select
+            className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm font-semibold text-white outline-none"
+            onChange={(event) => onAssignSpecialist(building.id, event.target.value as SpecialistId || undefined)}
+            value={assignedSpecialistId ?? ""}
+          >
+            <option value="">No specialist (+0%)</option>
+            {specialists.map((specialist) => (
+              <option
+                key={specialist.id}
+                disabled={selectedSpecialistIds.has(specialist.id) && specialist.id !== assignedSpecialistId}
+                value={specialist.id}
+              >
+                {specialist.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className={`mt-3 text-sm font-semibold ${isCorrectSpecialist ? "text-cyan-100" : assignedSpecialist ? "text-orange-100" : "text-slate-400"}`}>
+          {assignedSpecialist
+            ? `${assignedSpecialist.displayName}: +${heroBonus}% ${isCorrectSpecialist ? "correct specialist" : "general assignment"}`
+            : "No specialist assigned"}
+        </p>
+      </div>
     </Panel>
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function OutputPanel({
+  highlight = false,
+  label,
+  output,
+}: {
+  highlight?: boolean;
+  label: string;
+  output: Partial<Record<ResourceId, number>>;
+}) {
+  const entries = Object.entries(output);
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+    <div className={`rounded-2xl border p-4 ${highlight ? "border-cyan-200/25 bg-cyan-300/10" : "border-white/10 bg-white/[0.03]"}`}>
+      <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{label}</p>
+      <div className="mt-2 space-y-1 text-sm font-semibold text-white">
+        {entries.length ? (
+          entries.map(([resourceId, amount]) => (
+            <p key={resourceId}>
+              {amount} {resourceLabels[resourceId as ResourceId]}/cycle
+            </p>
+          ))
+        ) : (
+          <p className="text-slate-500">No passive output</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
       <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{label}</p>
-      <p className="mt-2 font-semibold capitalize text-slate-100">{value}</p>
+      <p className="mt-2 text-sm font-semibold text-slate-100">{value}</p>
     </div>
   );
 }
