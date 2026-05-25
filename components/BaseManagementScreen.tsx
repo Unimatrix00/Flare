@@ -97,6 +97,7 @@ export function BaseManagementScreen({
     (resources.alloy ?? 0) >= (commandCoreLevelTwoCost.alloy ?? 0) &&
     (resources.energy ?? 0) >= (commandCoreLevelTwoCost.energy ?? 0) &&
     (resources.data ?? 0) >= (commandCoreLevelTwoCost.data ?? 0);
+  const productionTotals = getProductionTotals({ assignments, buildingLevels, baseLevel });
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-[1600px] px-4 py-5 lg:px-6">
@@ -109,7 +110,8 @@ export function BaseManagementScreen({
             Command core level {baseLevel}
           </h1>
           <p className="mt-3 text-sm leading-6 text-slate-300">
-            Commander {commanderName} controls a {factionName} base at hex {crashSite.q}:{crashSite.r}.
+            Commander {commanderName} controls {getFactionArticle(factionName)} {factionName} base at hex{" "}
+            {crashSite.q}:{crashSite.r}.
           </p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
@@ -140,7 +142,9 @@ export function BaseManagementScreen({
                 Command Core upgrade
               </p>
               <p className="mt-2 text-sm leading-6 text-slate-300">
-                Level 2 costs 500 Alloy, 200 Energy, and 100 Data. Upgrade grants +2 Worker Drones.
+                {(buildingLevels.command_core ?? 1) >= 2
+                  ? "Level 2 is online. Your colony has two additional Worker Drones for building assignments."
+                  : "Level 2 costs 500 Alloy, 200 Energy, and 100 Data. Upgrade grants +2 Worker Drones."}
               </p>
             </div>
             <GameButton
@@ -182,6 +186,18 @@ export function BaseManagementScreen({
                   Adds each building&apos;s calculated hourly output once. Bonuses are additive.
                 </p>
               </div>
+            <div className="rounded-2xl border border-white/10 bg-black/25 p-4 text-sm text-slate-300">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">
+                Current output / cycle
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {dashboardResourceKeys.map((key) => (
+                  <span key={key} className="font-semibold text-slate-100">
+                    +{productionTotals[key] ?? 0} {resourceLabels[key]}
+                  </span>
+                ))}
+              </div>
+            </div>
               <GameButton onClick={onRunProduction}>Run Production Cycle</GameButton>
             </div>
             {productionLog && (
@@ -218,6 +234,42 @@ export function BaseManagementScreen({
       </div>
     </main>
   );
+}
+
+function getProductionTotals({
+  assignments,
+  baseLevel,
+  buildingLevels,
+}: {
+  assignments: BuildingAssignments;
+  baseLevel: number;
+  buildingLevels: BuildingLevels;
+}) {
+  return buildingDefinitions.reduce<Partial<Record<ResourceId, number>>>((totals, building) => {
+    if (building.unlocksAtBaseLevel > baseLevel || !building.baseOutputPerHour) {
+      return totals;
+    }
+
+    const assignment = assignments[building.id];
+    const output = calculateBuildingOutput({
+      buildingId: building.id,
+      buildingLevel: buildingLevels[building.id] ?? 1,
+      baseOutputPerHour: building.baseOutputPerHour,
+      assignedWorkerDrones: assignment?.droneCount ?? 0,
+      assignedSpecialistId: assignment?.specialistId,
+    });
+
+    Object.entries(output).forEach(([resourceId, amount]) => {
+      const key = resourceId as ResourceId;
+      totals[key] = (totals[key] ?? 0) + (amount ?? 0);
+    });
+
+    return totals;
+  }, {});
+}
+
+function getFactionArticle(factionName: string) {
+  return /^[aeiou]/i.test(factionName) ? "an" : "a";
 }
 
 function BuildingCard({
