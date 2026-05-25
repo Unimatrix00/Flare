@@ -97,6 +97,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
   const [selectedKey, setSelectedKey] = useState<string>();
   const [hoveredKey, setHoveredKey] = useState<string>();
   const [isMapReady, setIsMapReady] = useState(false);
+  const [isBuildPromptOpen, setIsBuildPromptOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState(
     "Choose any glowing start hex within two hexes of the sea.",
   );
@@ -377,15 +378,16 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
               <GameButton
                 className={`flex-1 ${selectedHex ? "ring-2 ring-cyan-100/60 ring-offset-2 ring-offset-slate-950" : ""}`}
                 disabled={!selectedHex}
-                onClick={() => selectedHex && onContinue(selectedHex)}
+                onClick={() => selectedHex && setIsBuildPromptOpen(true)}
               >
-                Confirm crash site
+                Build here
               </GameButton>
               <GameButton
                 type="button"
                 variant="ghost"
                 onClick={() => {
                   setSelectedKey(undefined);
+                  setIsBuildPromptOpen(false);
                   setStatusMessage("Choose any glowing start hex within two hexes of the sea.");
                   setCamera({ x: 0, y: 0, zoom: INITIAL_ZOOM });
                 }}
@@ -467,6 +469,34 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
           </Panel>
         </aside>
       </div>
+
+      {selectedHex && isBuildPromptOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
+          <Panel intensity="strong" className="max-w-lg p-6">
+            <p className="text-xs font-bold uppercase tracking-[0.32em] text-orange-200">
+              Build confirmation
+            </p>
+            <h2 className="mt-4 text-3xl font-black uppercase text-white">
+              Build your base here?
+            </h2>
+            <p className="mt-4 text-sm leading-6 text-slate-300">
+              Starter base construction is instant. This claims hex {selectedHex.q}:{selectedHex.r}
+              and reserves the six surrounding city hexes for future base levels.
+            </p>
+            <div className="mt-5 rounded-2xl border border-cyan-200/20 bg-cyan-300/10 p-4 text-sm font-semibold text-cyan-100">
+              Moving on the world map later takes 30 minutes per hex.
+            </div>
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <GameButton variant="ghost" onClick={() => setIsBuildPromptOpen(false)}>
+                Cancel
+              </GameButton>
+              <GameButton onClick={() => onContinue(selectedHex)}>
+                Yes, build base
+              </GameButton>
+            </div>
+          </Panel>
+        </div>
+      )}
     </main>
   );
 }

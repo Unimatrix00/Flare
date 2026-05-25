@@ -1,36 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ColonyDashboard } from "@/components/ColonyDashboard";
+import { BaseManagementScreen } from "@/components/BaseManagementScreen";
 import { FactionSelection } from "@/components/FactionSelection";
+import { LoginScreen } from "@/components/LoginScreen";
 import { MapStartScreen } from "@/components/MapStartScreen";
 import { SpecialistSelection } from "@/components/SpecialistSelection";
-import type {
-  DroneAction,
-  Faction,
-  ResourceKey,
-  ResourceMap,
-  Specialist,
-  SpecialistId,
-} from "@/lib/game-data";
+import type { BaseSection, ConstructionState } from "@/lib/base-data";
+import type { Faction, ResourceMap, Specialist, SpecialistId } from "@/lib/game-data";
 import { specialists, startingResources } from "@/lib/game-data";
 import type { WorldHex } from "@/lib/world-map";
 
-type Screen = "landing" | "faction" | "specialists" | "dashboard";
-
-type BaseStatus = {
-  name: string;
-  condition: string;
-  integrity: number;
-  security: number;
-};
-
-const initialBaseStatus: BaseStatus = {
-  name: "Crash Camp",
-  condition: "Exposed wreckage perimeter. Shelter is improvised and the dust front is moving in.",
-  integrity: 38,
-  security: 18,
-};
+type Screen = "login" | "faction" | "specialists" | "crash-location" | "base";
 
 const factionResourceBonus: Record<Faction["id"], Partial<ResourceMap>> = {
   "moon-faction": {
@@ -45,28 +26,23 @@ const factionResourceBonus: Record<Faction["id"], Partial<ResourceMap>> = {
 };
 
 export default function Home() {
-  const [screen, setScreen] = useState<Screen>("landing");
+  const [screen, setScreen] = useState<Screen>("login");
+  const [commanderName, setCommanderName] = useState("");
   const [selectedCrashSite, setSelectedCrashSite] = useState<WorldHex>();
   const [selectedFaction, setSelectedFaction] = useState<Faction>();
   const [selectedSpecialistIds, setSelectedSpecialistIds] = useState<SpecialistId[]>([]);
   const [resources, setResources] = useState<ResourceMap>(startingResources);
-  const [baseStatus, setBaseStatus] = useState<BaseStatus>(initialBaseStatus);
-  const [siteProgress, setSiteProgress] = useState(0);
-  const [activityLog, setActivityLog] = useState<string[]>([
-    "Emergency beacon cycling. Awaiting command input.",
-  ]);
+  const [construction, setConstruction] = useState<ConstructionState>({});
 
   const selectedSpecialists = useMemo(
     () => specialists.filter((specialist) => selectedSpecialistIds.includes(specialist.id)),
     [selectedSpecialistIds],
   );
 
-  const hasSpecialist = (id: SpecialistId) => selectedSpecialistIds.includes(id);
-
-  const buildCost = {
-    wreckage: hasSpecialist("engineer") ? 25 : 30,
-    energy: 8,
-  };
+  function login(name: string) {
+    setCommanderName(name);
+    setScreen("faction");
+  }
 
   function toggleSpecialist(specialist: Specialist) {
     setSelectedSpecialistIds((current) => {
@@ -82,130 +58,45 @@ export default function Home() {
     });
   }
 
-  function initializeColony() {
+  function buildBaseAt(site: WorldHex) {
     if (!selectedFaction || selectedSpecialistIds.length !== 3) {
       return;
     }
 
-    const factionBonus = factionResourceBonus[selectedFaction.id];
-    const nextResources = { ...startingResources };
-
-    Object.entries(factionBonus).forEach(([key, value]) => {
-      const resourceKey = key as ResourceKey;
-      nextResources[resourceKey] += value ?? 0;
-    });
-
-    setResources(nextResources);
-    setBaseStatus(initialBaseStatus);
-    setSiteProgress(0);
-    setActivityLog([
-      selectedCrashSite
-        ? `Crash site established on coastal hex ${selectedCrashSite.q}:${selectedCrashSite.r}.`
-        : "Crash site established on the Australian coast.",
-      `${selectedFaction.name} command profile loaded.`,
-      `${selectedSpecialists.map((specialist) => specialist.name).join(", ")} assigned to crash recovery.`,
-    ]);
-    setScreen("dashboard");
+    setSelectedCrashSite(site);
+    setResources(applyFactionBonus(selectedFaction));
+    setConstruction({});
+    setScreen("base");
   }
 
-  function runDroneAction(action: DroneAction) {
-    const effects = applySpecialistBonuses(action);
-
-    setResources((current) => {
-      if (!canAfford(current, effects)) {
-        return current;
-      }
-
-      const nextResources = { ...current };
-      Object.entries(effects).forEach(([key, value]) => {
-        const resourceKey = key as ResourceKey;
-        nextResources[resourceKey] += value ?? 0;
-      });
-      return nextResources;
-    });
-
-    if (action.id === "scout") {
-      setSiteProgress((current) => Math.min(100, current + 25));
-      setBaseStatus((current) => ({
-        ...current,
-        security: Math.min(100, current.security + (hasSpecialist("soldier") ? 4 : 1)),
-      }));
-    }
-
-    pushLog(`${action.label} completed: ${formatEffects(effects)}.`);
-  }
-
-  function buildStarterBase() {
-    if (baseStatus.name === "Starter Base") {
-      return;
-    }
-
-    setResources((current) => {
-      if (current.wreckage < buildCost.wreckage || current.energy < buildCost.energy) {
+  function startConstruction(section: BaseSection) {
+    setConstruction((current) => {
+      if (current[section.id]) {
         return current;
       }
 
       return {
         ...current,
-        wreckage: current.wreckage - buildCost.wreckage,
-        energy: current.energy - buildCost.energy,
+        [section.id]: {
+          startedAt: Date.now(),
+          durationMs: section.buildHours * 60 * 60 * 1000,
+        },
       };
     });
-    setBaseStatus({
-      name: "Starter Base",
-      condition: "A sealed habitat core, drone bay, and sensor mast are online.",
-      integrity: 74,
-      security: Math.min(100, baseStatus.security + 12),
-    });
-    pushLog("Starter Base constructed. Habitat pressure is holding.");
   }
 
-  function resetRun() {
-    setScreen("landing");
+  function resetFtue() {
+    setScreen("login");
+    setCommanderName("");
     setSelectedCrashSite(undefined);
     setSelectedFaction(undefined);
     setSelectedSpecialistIds([]);
     setResources(startingResources);
-    setBaseStatus(initialBaseStatus);
-    setSiteProgress(0);
-    setActivityLog(["Emergency beacon cycling. Awaiting command input."]);
+    setConstruction({});
   }
 
-  function applySpecialistBonuses(action: DroneAction) {
-    const effects = { ...action.effects };
-
-    if (hasSpecialist("pilot") && effects.energy && effects.energy < 0) {
-      effects.energy += 1;
-    }
-
-    if (action.id === "salvage" && hasSpecialist("scavenger")) {
-      effects.wreckage = (effects.wreckage ?? 0) + 3;
-    }
-
-    if ((action.id === "data" || action.id === "scout") && hasSpecialist("scientist")) {
-      effects.data = (effects.data ?? 0) + 2;
-    }
-
-    if (action.id === "food" && hasSpecialist("medic")) {
-      effects.food = (effects.food ?? 0) + 2;
-    }
-
-    return effects;
-  }
-
-  function pushLog(entry: string) {
-    setActivityLog((current) => [entry, ...current].slice(0, 5));
-  }
-
-  if (screen === "landing") {
-    return (
-      <MapStartScreen
-        onContinue={(site) => {
-          setSelectedCrashSite(site);
-          setScreen("faction");
-        }}
-      />
-    );
+  if (screen === "login") {
+    return <LoginScreen onLogin={login} />;
   }
 
   if (screen === "faction") {
@@ -224,47 +115,40 @@ export default function Home() {
         selectedSpecialistIds={selectedSpecialistIds}
         onToggle={toggleSpecialist}
         onBack={() => setScreen("faction")}
-        onContinue={initializeColony}
+        onContinue={() => setScreen("crash-location")}
       />
     );
   }
 
-  if (!selectedFaction) {
-    return (
-      <MapStartScreen
-        onContinue={(site) => {
-          setSelectedCrashSite(site);
-          setScreen("faction");
-        }}
-      />
-    );
+  if (screen === "crash-location") {
+    return <MapStartScreen onContinue={buildBaseAt} />;
+  }
+
+  if (!selectedFaction || !selectedCrashSite) {
+    return <LoginScreen onLogin={login} />;
   }
 
   return (
-    <ColonyDashboard
+    <BaseManagementScreen
+      commanderName={commanderName || "Commander"}
+      construction={construction}
+      crashSite={selectedCrashSite}
       faction={selectedFaction}
-      specialists={selectedSpecialists}
+      onReset={resetFtue}
+      onStartConstruction={startConstruction}
       resources={resources}
-      baseStatus={baseStatus}
-      siteProgress={siteProgress}
-      activityLog={activityLog}
-      buildCost={buildCost}
-      onRunDroneAction={runDroneAction}
-      onBuildBase={buildStarterBase}
-      onReset={resetRun}
+      specialists={selectedSpecialists}
     />
   );
 }
 
-function canAfford(resources: ResourceMap, effects: Partial<ResourceMap>) {
-  return Object.entries(effects).every(([key, value]) => {
-    const resourceKey = key as ResourceKey;
-    return resources[resourceKey] + (value ?? 0) >= 0;
-  });
-}
+function applyFactionBonus(faction: Faction) {
+  const nextResources = { ...startingResources };
 
-function formatEffects(effects: Partial<ResourceMap>) {
-  return Object.entries(effects)
-    .map(([key, value]) => `${value && value > 0 ? "+" : ""}${value} ${key}`)
-    .join(", ");
+  Object.entries(factionResourceBonus[faction.id]).forEach(([key, value]) => {
+    const resourceKey = key as keyof ResourceMap;
+    nextResources[resourceKey] += value ?? 0;
+  });
+
+  return nextResources;
 }

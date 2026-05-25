@@ -91,7 +91,7 @@ export function SpecialistSelection({
           disabled={selectedSpecialistIds.length !== requiredSpecialists}
           onClick={onContinue}
         >
-          Establish crash site
+          Choose crash location
         </GameButton>
       </div>
     </main>
