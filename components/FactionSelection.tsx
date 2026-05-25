@@ -1,0 +1,73 @@
+import type { Faction, FactionId } from "@/lib/game-data";
+import { factions } from "@/lib/game-data";
+import { GameButton } from "./ui/GameButton";
+import { Panel } from "./ui/Panel";
+
+type FactionSelectionProps = {
+  selectedFactionId?: FactionId;
+  onSelect: (faction: Faction) => void;
+  onContinue: () => void;
+};
+
+export function FactionSelection({
+  selectedFactionId,
+  onSelect,
+  onContinue,
+}: FactionSelectionProps) {
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-center px-6 py-10">
+      <div className="mb-8 max-w-3xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.45em] text-cyan-200">
+          Command alignment
+        </p>
+        <h2 className="mt-4 text-4xl font-black uppercase tracking-[-0.04em] text-white sm:text-6xl">
+          Choose your faction
+        </h2>
+        <p className="mt-4 text-slate-300">
+          Your survivors need doctrine before they can build a future. Pick one faction for this run.
+        </p>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        {factions.map((faction) => {
+          const isSelected = faction.id === selectedFactionId;
+
+          return (
+            <button
+              key={faction.id}
+              onClick={() => onSelect(faction)}
+              className="group text-left"
+              type="button"
+            >
+              <Panel
+                intensity={isSelected ? "strong" : "soft"}
+                className={`h-full p-6 transition duration-200 group-hover:-translate-y-1 group-hover:border-cyan-200/45 ${
+                  isSelected ? "ring-2 ring-cyan-200/60" : ""
+                }`}
+              >
+                <p className="text-xs font-bold uppercase tracking-[0.3em] text-orange-200">
+                  {faction.signal}
+                </p>
+                <h3 className="mt-5 text-2xl font-black uppercase text-white">
+                  {faction.name}
+                </h3>
+                <p className="mt-4 min-h-24 text-sm leading-6 text-slate-300">
+                  {faction.description}
+                </p>
+                <div className="mt-6 rounded-2xl border border-cyan-200/15 bg-cyan-300/10 p-4 text-sm font-semibold text-cyan-100">
+                  {faction.bonus}
+                </div>
+              </Panel>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-8 flex justify-end">
+        <GameButton disabled={!selectedFactionId} onClick={onContinue}>
+          Confirm faction
+        </GameButton>
+      </div>
+    </main>
+  );
+}
