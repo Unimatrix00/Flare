@@ -28,7 +28,7 @@ export function FactionSelection({
         </p>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="grid items-stretch gap-5 lg:grid-cols-3">
         {factions.map((faction) => {
           const isSelected = faction.id === selectedFactionId;
 
@@ -36,12 +36,12 @@ export function FactionSelection({
             <button
               key={faction.id}
               onClick={() => onSelect(faction)}
-              className="group text-left"
+              className="group flex text-left"
               type="button"
             >
               <Panel
                 intensity={isSelected ? "strong" : "soft"}
-                className={`flex h-full flex-col p-6 transition duration-200 group-hover:-translate-y-1 group-hover:border-cyan-200/45 ${
+                className={`flex h-full w-full flex-col p-6 transition duration-200 group-hover:border-cyan-200/45 ${
                   isSelected ? "ring-2 ring-cyan-200/60" : ""
                 }`}
               >
