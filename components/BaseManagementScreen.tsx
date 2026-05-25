@@ -3,6 +3,7 @@
 import {
   buildingDefinitions,
   buildingLevelRuleByLevel,
+  startingBuildingIds,
   type BuildingDefinition,
   type BuildingId,
 } from "@/lib/game/buildings";
@@ -215,7 +216,10 @@ export function BaseManagementScreen({
 
         <div className="grid gap-4 xl:grid-cols-2">
           {buildingDefinitions
-            .filter((building) => building.unlocksAtBaseLevel <= baseLevel)
+            .filter(
+              (building) =>
+                building.unlocksAtBaseLevel <= baseLevel && startingBuildingIds.includes(building.id),
+            )
             .map((building) => (
               <BuildingCard
                 key={building.id}
@@ -246,7 +250,11 @@ function getProductionTotals({
   buildingLevels: BuildingLevels;
 }) {
   return buildingDefinitions.reduce<Partial<Record<ResourceId, number>>>((totals, building) => {
-    if (building.unlocksAtBaseLevel > baseLevel || !building.baseOutputPerHour) {
+    if (
+      building.unlocksAtBaseLevel > baseLevel ||
+      !startingBuildingIds.includes(building.id) ||
+      !building.baseOutputPerHour
+    ) {
       return totals;
     }
 

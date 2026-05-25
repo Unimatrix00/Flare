@@ -31,6 +31,16 @@ export type BuildingLevelRule = {
 
 export const WORKER_DRONE_OUTPUT_BONUS_PERCENT = 5;
 
+export const startingBuildingIds: BuildingId[] = [
+  "command_core",
+  "foundry",
+  "power_core",
+  "research_lab",
+  "drone_yard",
+  "hydroponics",
+  "hero_quarters",
+];
+
 export const buildingLevelRules: BuildingLevelRule[] = [
   {
     level: 1,

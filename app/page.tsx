@@ -11,7 +11,7 @@ import { FactionSelection } from "@/components/FactionSelection";
 import { LoginScreen } from "@/components/LoginScreen";
 import { MapStartScreen } from "@/components/MapStartScreen";
 import { SpecialistSelection } from "@/components/SpecialistSelection";
-import { buildingDefinitions, buildingLevelRuleByLevel, type BuildingId } from "@/lib/game/buildings";
+import { buildingDefinitions, buildingLevelRuleByLevel, startingBuildingIds, type BuildingId } from "@/lib/game/buildings";
 import { calculateBuildingOutput, getWorkerDroneCountForBaseLevel } from "@/lib/game/economy";
 import type { Faction, ResourceMap, Specialist, SpecialistId } from "@/lib/game-data";
 import { specialists, startingResources } from "@/lib/game-data";
@@ -233,7 +233,11 @@ export default function Home() {
       const lines: string[] = [];
 
       buildingDefinitions.forEach((building) => {
-        if (building.unlocksAtBaseLevel > current.baseLevel || !building.baseOutputPerHour) {
+        if (
+          building.unlocksAtBaseLevel > current.baseLevel ||
+          !startingBuildingIds.includes(building.id) ||
+          !building.baseOutputPerHour
+        ) {
           return;
         }
 
