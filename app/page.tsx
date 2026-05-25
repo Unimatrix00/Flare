@@ -13,6 +13,12 @@ import { MapStartScreen } from "@/components/MapStartScreen";
 import { SpecialistSelection } from "@/components/SpecialistSelection";
 import { buildingDefinitions, buildingLevelRuleByLevel, startingBuildingIds, type BuildingId } from "@/lib/game/buildings";
 import { calculateBuildingOutput, getWorkerDroneCountForBaseLevel } from "@/lib/game/economy";
+import {
+  completeScoutMove,
+  createInitialScoutMapState,
+  startScoutMove,
+  type ScoutMapState,
+} from "@/lib/game/scouting";
 import type { Faction, ResourceMap, Specialist, SpecialistId } from "@/lib/game-data";
 import { specialists, startingResources } from "@/lib/game-data";
 import { tileById } from "@/lib/tile-data";
@@ -27,6 +33,7 @@ type DashboardState = {
   productionCycle: number;
   productionLog?: ProductionLogEntry;
   resources: ResourceMap;
+  scouting?: ScoutMapState;
 };
 
 const factionResourceBonus: Record<Faction["id"], Partial<ResourceMap>> = {
@@ -107,6 +114,33 @@ export default function Home() {
     }
   }, [dashboard, screen]);
 
+  useEffect(() => {
+    if (dashboard.scouting?.scout.status !== "moving") {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setDashboard((current) => {
+        if (!current.scouting || current.scouting.scout.status !== "moving") {
+          return current;
+        }
+
+        const nextScouting = completeScoutMove(current.scouting);
+
+        if (nextScouting === current.scouting) {
+          return current;
+        }
+
+        return {
+          ...current,
+          scouting: nextScouting,
+        };
+      });
+    }, 500);
+
+    return () => window.clearInterval(interval);
+  }, [dashboard.scouting?.scout.status]);
+
   function login(name: string) {
     setCommanderName(name);
     setScreen("faction");
@@ -149,6 +183,7 @@ export default function Home() {
         lines: ["Starter base built instantly. Assign drones and specialists, then run production."],
       },
       resources: applyFactionBonus(selectedFaction),
+      scouting: createInitialScoutMapState(site),
     });
     setScreen("base");
   }
@@ -309,6 +344,19 @@ export default function Home() {
     });
   }
 
+  function moveScout(destinationTileId: string) {
+    setDashboard((current) => {
+      if (!current.scouting) {
+        return current;
+      }
+
+      return {
+        ...current,
+        scouting: startScoutMove(current.scouting, destinationTileId),
+      };
+    });
+  }
+
   function resetFtue() {
     setScreen("login");
     setCommanderName("");
@@ -376,9 +424,11 @@ export default function Home() {
       onRemoveDrone={removeDrone}
       onReset={resetFtue}
       onRunProduction={runProductionCycle}
+      onScoutMove={moveScout}
       onUpgradeCommandCore={upgradeCommandCore}
       productionLog={dashboard.productionLog}
       resources={dashboard.resources}
+      scouting={dashboard.scouting ?? createInitialScoutMapState(selectedCrashSite)}
       specialists={selectedSpecialists}
     />
   );

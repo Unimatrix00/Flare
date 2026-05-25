@@ -22,7 +22,7 @@ export const startingPlayerState: StartingPlayerEconomyState = {
   resources: startingResources,
   unitCounts: {
     worker_drone: getWorkerDroneCountForBaseLevel(1),
-    scout_drone: 0,
+    scout_drone: 1,
     combat_drone: 0,
   },
   selectedSpecialistIds: [],

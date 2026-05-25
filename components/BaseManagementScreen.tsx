@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   buildingDefinitions,
   buildingLevelRuleByLevel,
@@ -14,6 +15,7 @@ import {
   getWorkerDroneCountForBaseLevel,
 } from "@/lib/game/economy";
 import type { ResourceAmount, ResourceId } from "@/lib/game/resources";
+import { canScoutMoveTo, type ScoutMapState, type ScoutMapTile } from "@/lib/game/scouting";
 import { resourceLabels } from "@/lib/game-data";
 import type { Specialist, SpecialistId } from "@/lib/game-data";
 import { specialistById } from "@/lib/game/specialists";
@@ -53,7 +55,9 @@ type BaseManagementScreenProps = {
   onRemoveDrone: (buildingId: BuildingId) => void;
   onReset: () => void;
   onRunProduction: () => void;
+  onScoutMove: (destinationTileId: string) => void;
   onUpgradeCommandCore: () => void;
+  scouting: ScoutMapState;
 };
 
 const dashboardResourceKeys: ResourceId[] = ["energy", "alloy", "data", "food"];
@@ -80,8 +84,11 @@ export function BaseManagementScreen({
   onRemoveDrone,
   onReset,
   onRunProduction,
+  onScoutMove,
   onUpgradeCommandCore,
+  scouting,
 }: BaseManagementScreenProps) {
+  const [now, setNow] = useState(() => Date.now());
   const totalWorkerDrones = getWorkerDroneCountForBaseLevel(baseLevel);
   const assignedWorkerDrones = Object.values(assignments).reduce(
     (total, assignment) => total + (assignment?.droneCount ?? 0),
@@ -99,6 +106,20 @@ export function BaseManagementScreen({
     (resources.energy ?? 0) >= (commandCoreLevelTwoCost.energy ?? 0) &&
     (resources.data ?? 0) >= (commandCoreLevelTwoCost.data ?? 0);
   const productionTotals = getProductionTotals({ assignments, buildingLevels, baseLevel });
+  const scoutArrivesInSeconds =
+    scouting.scout.status === "moving" && scouting.scout.movementEndsAt
+      ? Math.max(0, Math.ceil((scouting.scout.movementEndsAt - now) / 1000))
+      : null;
+
+  useEffect(() => {
+    if (scouting.scout.status !== "moving") {
+      return;
+    }
+
+    const interval = window.setInterval(() => setNow(Date.now()), 250);
+
+    return () => window.clearInterval(interval);
+  }, [scouting.scout.status]);
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-[1600px] px-4 py-5 lg:px-6">
@@ -161,6 +182,12 @@ export function BaseManagementScreen({
 
       <div className="mb-5 grid gap-4 lg:grid-cols-[0.55fr_1.45fr]">
         <div className="space-y-4">
+          <ScoutPanel
+            arrivesInSeconds={scoutArrivesInSeconds}
+            onScoutMove={onScoutMove}
+            scouting={scouting}
+          />
+
           <Panel className="p-5">
             <p className="text-xs font-bold uppercase tracking-[0.28em] text-cyan-200">
               Resources
@@ -237,6 +264,149 @@ export function BaseManagementScreen({
         </div>
       </div>
     </main>
+  );
+}
+
+function ScoutPanel({
+  arrivesInSeconds,
+  onScoutMove,
+  scouting,
+}: {
+  arrivesInSeconds: number | null;
+  onScoutMove: (destinationTileId: string) => void;
+  scouting: ScoutMapState;
+}) {
+  return (
+    <Panel intensity="strong" className="p-5">
+      <div className="flex flex-col gap-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.28em] text-cyan-200">
+              Scout map
+            </p>
+            <h2 className="mt-3 text-2xl font-black uppercase text-white">
+              {scouting.scout.displayName}
+            </h2>
+          </div>
+          <span className="rounded-full border border-cyan-200/30 bg-cyan-300/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-cyan-100">
+            {scouting.scout.status === "moving" ? `Arrives in ${arrivesInSeconds}s` : "Idle"}
+          </span>
+        </div>
+
+        <p className="text-sm leading-6 text-slate-300">
+          Move one adjacent hex at a time. Movement takes 5 seconds for this prototype.
+        </p>
+
+        <ScoutHexMap onScoutMove={onScoutMove} scouting={scouting} />
+
+        <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Scout log</p>
+          <div className="mt-3 space-y-2 text-sm text-slate-300">
+            {scouting.scoutLog.map((line) => (
+              <p key={line}>{line}</p>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
+function ScoutHexMap({
+  onScoutMove,
+  scouting,
+}: {
+  onScoutMove: (destinationTileId: string) => void;
+  scouting: ScoutMapState;
+}) {
+  const points = scouting.tiles.map((tile) => ({
+    tile,
+    x: 82 * (tile.q + tile.r / 2),
+    y: 72 * tile.r,
+  }));
+  const minX = Math.min(...points.map((point) => point.x));
+  const minY = Math.min(...points.map((point) => point.y));
+  const maxY = Math.max(...points.map((point) => point.y));
+
+  return (
+    <div
+      className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-950/80"
+      style={{ height: maxY - minY + 150 }}
+    >
+      {points.map(({ tile, x, y }) => (
+        <ScoutTileCard
+          key={tile.id}
+          canMove={canScoutMoveTo(tile, scouting.scout)}
+          isMoving={scouting.scout.status === "moving"}
+          onScoutMove={onScoutMove}
+          tile={tile}
+          x={x - minX + 22}
+          y={y - minY + 24}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ScoutTileCard({
+  canMove,
+  isMoving,
+  onScoutMove,
+  tile,
+  x,
+  y,
+}: {
+  canMove: boolean;
+  isMoving: boolean;
+  onScoutMove: (destinationTileId: string) => void;
+  tile: ScoutMapTile;
+  x: number;
+  y: number;
+}) {
+  const tileResources = tile.mainResources.map((resourceId) => resourceLabels[resourceId]).join(", ");
+  const stateLabel = tile.isExplored ? "Explored" : tile.isRevealed ? "Revealed" : "Signal unclear";
+
+  return (
+    <div
+      className={`absolute flex h-[88px] w-[116px] flex-col justify-between rounded-2xl border p-2 text-center text-[0.64rem] shadow-lg ${
+        tile.isRevealed
+          ? tile.isExplored
+            ? "border-cyan-200/50 bg-cyan-300/15 text-slate-100"
+            : "border-orange-200/35 bg-orange-300/10 text-slate-200"
+          : "border-white/5 bg-black/50 text-slate-500"
+      }`}
+      style={{
+        left: x,
+        top: y,
+        clipPath: "polygon(18% 0%, 82% 0%, 100% 50%, 82% 100%, 18% 100%, 0% 50%)",
+        zIndex: canMove ? 20 : tile.hasScout ? 15 : tile.isRevealed ? 5 : 1,
+      }}
+    >
+      <div>
+        <p className="font-black uppercase leading-tight">
+          {tile.isRevealed ? tile.displayName : "Unknown"}
+        </p>
+        <p className="mt-1 uppercase tracking-[0.12em]">{stateLabel}</p>
+      </div>
+      {tile.isRevealed && (
+        <div className="leading-tight">
+          <p>Risk: {tile.riskLevel}</p>
+          <p>{tileResources || "No early resources"}</p>
+        </div>
+      )}
+      {tile.hasBase && <p className="font-black text-cyan-100">BASE</p>}
+      {tile.hasScout && <p className="font-black text-orange-100">SCOUT</p>}
+      {canMove && (
+        <button
+          className="relative z-30 rounded-full bg-cyan-300 px-2 py-1 text-[0.58rem] font-black uppercase tracking-[0.08em] text-slate-950 disabled:opacity-40"
+          disabled={isMoving}
+          onClick={() => onScoutMove(tile.id)}
+          type="button"
+        >
+          Move Scout Here
+        </button>
+      )}
+    </div>
   );
 }
 

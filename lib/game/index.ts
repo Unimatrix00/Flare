@@ -6,3 +6,4 @@ export * from "./buildings";
 export * from "./units";
 export * from "./economy";
 export * from "./playerState";
+export * from "./scouting";
