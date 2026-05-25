@@ -321,8 +321,8 @@ function ScoutHexMap({
 }) {
   const points = scouting.tiles.map((tile) => ({
     tile,
-    x: 150 * (tile.q + tile.r / 2),
-    y: 126 * tile.r,
+    x: 180 * (tile.q + tile.r / 2),
+    y: 168 * tile.r,
   }));
   const minX = Math.min(...points.map((point) => point.x));
   const minY = Math.min(...points.map((point) => point.y));
@@ -330,12 +330,12 @@ function ScoutHexMap({
   const maxY = Math.max(...points.map((point) => point.y));
 
   return (
-    <div className="h-[520px] overflow-auto rounded-3xl border border-white/10 bg-slate-950/80">
+    <div className="h-[720px] overflow-auto rounded-3xl border border-white/10 bg-slate-950/80">
       <div
         className="relative"
         style={{
-          height: maxY - minY + 170,
-          width: maxX - minX + 250,
+          height: maxY - minY + 260,
+          width: maxX - minX + 300,
         }}
       >
         {points.map(({ tile, x, y }) => (
@@ -345,8 +345,8 @@ function ScoutHexMap({
             isMoving={scouting.scout.status === "moving"}
             onScoutMove={onScoutMove}
             tile={tile}
-            x={x - minX + 88}
-            y={y - minY + 28}
+            x={x - minX + 96}
+            y={y - minY + 48}
           />
         ))}
       </div>
@@ -374,7 +374,7 @@ function ScoutTileCard({
 
   return (
     <div
-      className={`absolute flex h-[112px] w-[132px] flex-col justify-between rounded-2xl border p-3 text-center text-[0.68rem] shadow-lg ${
+      className={`absolute flex h-[150px] w-[160px] flex-col justify-between rounded-2xl border p-3 text-center text-[0.72rem] shadow-lg ${
         tile.isRevealed
           ? tile.isExplored
             ? "border-cyan-200/50 bg-cyan-300/15 text-slate-100"
