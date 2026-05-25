@@ -177,14 +177,12 @@ export function generateWorldMap(radius = WORLD_RADIUS): WorldMap {
     const distanceFromPortal = getHexDistance(hex);
     const isPortal = key === "0,0";
     const hasFullCityFootprint = neighbors.every((neighbor) => landKeys.has(createHexKey(neighbor)));
-    const isNearShore = getHexesInRange(hex, 2).some((coord) => coastKeys.has(createHexKey(coord)));
+    const isWithinStartBand = getHexesInRange(hex, 2).some((coord) => coastKeys.has(createHexKey(coord)));
     const isValidStart =
       hex.isLand &&
       !isCoast &&
-      isNearShore &&
-      hasFullCityFootprint &&
-      distanceFromPortal > 58 &&
-      terrain !== "mountains";
+      isWithinStartBand &&
+      hasFullCityFootprint;
 
     return {
       ...hex,

@@ -96,7 +96,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
   const [hoveredKey, setHoveredKey] = useState<string>();
   const [isMapReady, setIsMapReady] = useState(false);
   const [statusMessage, setStatusMessage] = useState(
-    "Choose a glowing shore-region hex for the first crash camp.",
+    "Choose any glowing start hex within two hexes of the sea.",
   );
 
   const selectedHex = selectedKey ? worldMap.byKey.get(selectedKey) : undefined;
@@ -209,7 +209,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
     if (!hex.isValidStart) {
       setStatusMessage(
         hex.isLand
-          ? "Inland tiles are locked for the start. Pick a glowing shore-region hex."
+          ? "Starts must be within two hexes of the sea and reserve a full 7-hex city footprint."
           : "The ocean rim is capped at two hexes for performance. Pick land near the shore.",
       );
       return;
@@ -327,7 +327,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
             <div className="pointer-events-none absolute left-4 top-4 rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-xs text-slate-300 backdrop-blur">
               <p className="font-bold uppercase tracking-[0.24em] text-cyan-100">Fog enabled</p>
               <p className="mt-1 max-w-xs">
-                Drag to pan. Scroll to zoom. Glowing shore-region hexes are valid starts.
+                Drag to pan. Scroll to zoom. Glowing hexes within two hexes of the sea are valid starts.
               </p>
             </div>
             <div className="pointer-events-none absolute bottom-4 left-4 grid gap-2 text-xs uppercase tracking-[0.18em] text-slate-300 sm:grid-cols-4">
@@ -384,7 +384,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
                 variant="ghost"
                 onClick={() => {
                   setSelectedKey(undefined);
-                  setStatusMessage("Choose a glowing shore-region hex for the first crash camp.");
+                  setStatusMessage("Choose any glowing start hex within two hexes of the sea.");
                   setCamera({ x: 0, y: 0, zoom: 0.58 });
                 }}
               >
