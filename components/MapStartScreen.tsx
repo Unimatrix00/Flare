@@ -92,8 +92,14 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | undefined>(undefined);
   const worldMap = useMemo(() => generateWorldMap(), []);
+  const initialCamera = useMemo(() => {
+    const firstStart = worldMap.hexes.find((hex) => hex.isValidStart) ?? { q: 0, r: 0 };
+    const point = axialToPixel(firstStart);
+
+    return { x: point.x, y: point.y, zoom: INITIAL_ZOOM };
+  }, [worldMap]);
   const [canvasSize, setCanvasSize] = useState({ width: 900, height: 640 });
-  const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: INITIAL_ZOOM });
+  const [camera, setCamera] = useState<Camera>(initialCamera);
   const [selectedKey, setSelectedKey] = useState<string>();
   const [hoveredKey, setHoveredKey] = useState<string>();
   const [isMapReady, setIsMapReady] = useState(false);
@@ -389,7 +395,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
                   setSelectedKey(undefined);
                   setIsBuildPromptOpen(false);
                   setStatusMessage("Choose any glowing start hex within two hexes of the sea.");
-                  setCamera({ x: 0, y: 0, zoom: INITIAL_ZOOM });
+                  setCamera(initialCamera);
                 }}
               >
                 Reset
