@@ -57,8 +57,10 @@ export function FactionSelection({
                 <p className="mt-4 min-h-24 text-sm leading-6 text-slate-300">
                   {faction.description}
                 </p>
-                <div className="mt-auto flex min-h-28 items-start rounded-2xl border border-cyan-200/15 bg-cyan-300/10 p-4 text-sm font-semibold leading-6 text-cyan-100">
-                  {faction.bonus}
+                <div className="mt-auto min-h-36 space-y-2 rounded-2xl border border-cyan-200/15 bg-cyan-300/10 p-4 text-xs font-semibold leading-5 text-cyan-100">
+                  {faction.bonus.split(" / ").map((bonus) => (
+                    <p key={bonus}>{bonus}</p>
+                  ))}
                 </div>
               </Panel>
             </button>
