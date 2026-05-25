@@ -76,7 +76,7 @@ const resourceReadout = [
 const navItems = ["Map", "Base", "Alliance", "Chat", "Missions", "Reports"];
 const allianceSignals = [
   "Alliance beacon: not joined",
-  "Server project: FLARE Gate dormant",
+  "Portal project is dormant",
   "Rallies unlock at base level 10",
 ];
 const chatMessages = [
