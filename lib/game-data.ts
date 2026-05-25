@@ -39,7 +39,7 @@ export const factions: Faction[] = [
     id: "moon-faction",
     name: "Moon Faction",
     description:
-      "Orbital returnees with precision systems, cold discipline, and fragments of pre-fall command doctrine.",
+      "Orbital returnees with precision systems, cold discipline, and fragments of pre-fall protocols.",
     bonus: "+10 starting Energy from surviving lunar cells.",
     signal: "LUNAR COMMAND",
   },
