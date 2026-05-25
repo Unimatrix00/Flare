@@ -1,11 +1,13 @@
 import type { BuildingId } from "./buildings";
 import { getWorkerDroneCountForBaseLevel } from "./economy";
+import type { FactionId } from "./factions";
 import { startingResources } from "./resources";
 import type { SpecialistId } from "./specialists";
 import type { BlueprintId, ResearchId, UnitId } from "./units";
 
 export type StartingPlayerEconomyState = {
   baseLevel: number;
+  factionId?: FactionId;
   resources: typeof startingResources;
   unitCounts: Partial<Record<UnitId, number>>;
   selectedSpecialistIds: SpecialistId[];
@@ -16,6 +18,7 @@ export type StartingPlayerEconomyState = {
 
 export const startingPlayerState: StartingPlayerEconomyState = {
   baseLevel: 1,
+  factionId: undefined,
   resources: startingResources,
   unitCounts: {
     worker_drone: getWorkerDroneCountForBaseLevel(1),

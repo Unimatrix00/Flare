@@ -46,11 +46,14 @@ export function FactionSelection({
                 }`}
               >
                 <p className="text-xs font-bold uppercase tracking-[0.3em] text-orange-200">
-                  {faction.signal}
+                  {faction.signal} / {faction.origin}
                 </p>
                 <h3 className="mt-5 text-2xl font-black uppercase text-white">
                   {faction.name}
                 </h3>
+                <p className="mt-2 text-xs font-bold uppercase tracking-[0.24em] text-cyan-200">
+                  {faction.gameplayIdentity.join(" / ")}
+                </p>
                 <p className="mt-4 min-h-24 text-sm leading-6 text-slate-300">
                   {faction.description}
                 </p>

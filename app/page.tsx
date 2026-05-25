@@ -15,14 +15,15 @@ import type { WorldHex } from "@/lib/world-map";
 type Screen = "login" | "faction" | "specialists" | "crash-location" | "base" | "world-map";
 
 const factionResourceBonus: Record<Faction["id"], Partial<ResourceMap>> = {
-  "moon-faction": {
+  selene_directorate: {
     energy: 10,
+    data: 10,
   },
-  "earth-survivors": {
-    food: 10,
-  },
-  "rebel-fleet": {
+  ares_compact: {
     alloy: 10,
+  },
+  free_orbit_coalition: {
+    blueprints: 1,
   },
 };
 

@@ -1,3 +1,4 @@
+import { factionDefinitions, type FactionId } from "./game/factions";
 import { resourceById, startingResources, type ResourceAmount, type ResourceId } from "./game/resources";
 import { specialistDefinitions, type SpecialistId } from "./game/specialists";
 
@@ -5,16 +6,19 @@ export type ResourceKey = ResourceId;
 
 export type ResourceMap = ResourceAmount;
 
+export type { FactionId };
 export type { SpecialistId };
-
-export type FactionId = "moon-faction" | "earth-survivors" | "rebel-fleet";
 
 export type Faction = {
   id: FactionId;
   name: string;
+  shortName: string;
+  origin: string;
   description: string;
   bonus: string;
   signal: string;
+  story: string;
+  gameplayIdentity: string[];
 };
 
 export type Specialist = {
@@ -31,32 +35,17 @@ export type DroneAction = {
   effects: Partial<ResourceMap>;
 };
 
-export const factions: Faction[] = [
-  {
-    id: "moon-faction",
-    name: "Moon Faction",
-    description:
-      "Orbital returnees with precision systems, cold discipline, and fragments of pre-fall protocols.",
-    bonus: "+10 starting Energy from surviving lunar cells.",
-    signal: "LUNAR COMMAND",
-  },
-  {
-    id: "earth-survivors",
-    name: "Earth Survivors",
-    description:
-      "Ground-born communities hardened by dust storms, scavenger wars, and the long silence after Earthfall.",
-    bonus: "+10 starting Food from local survival caches.",
-    signal: "OUTBACK GRID",
-  },
-  {
-    id: "rebel-fleet",
-    name: "Rebel Fleet",
-    description:
-      "A fractured armada of defectors and smugglers who trust speed, improvisation, and black-box tech.",
-    bonus: "+10 starting Alloy from extra salvage pods.",
-    signal: "FREE WAKE",
-  },
-];
+export const factions: Faction[] = factionDefinitions.map((faction) => ({
+  id: faction.id,
+  name: faction.displayName,
+  shortName: faction.shortName,
+  origin: faction.origin,
+  description: faction.shortDescription,
+  bonus: faction.bonuses.map((bonus) => bonus.description).join(" / "),
+  signal: faction.signal,
+  story: faction.story,
+  gameplayIdentity: faction.gameplayIdentity,
+}));
 
 export const specialists: Specialist[] = specialistDefinitions.map((specialist) => ({
   id: specialist.id,
