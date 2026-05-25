@@ -54,7 +54,7 @@ export function FactionSelection({
                 <p className="mt-4 min-h-24 text-sm leading-6 text-slate-300">
                   {faction.description}
                 </p>
-                <div className="mt-auto rounded-2xl border border-cyan-200/15 bg-cyan-300/10 p-4 text-sm font-semibold text-cyan-100">
+                <div className="mt-auto flex min-h-20 items-center rounded-2xl border border-cyan-200/15 bg-cyan-300/10 p-4 text-sm font-semibold text-cyan-100">
                   {faction.bonus}
                 </div>
               </Panel>
