@@ -221,7 +221,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
 
       return { x: point.x, y: point.y, zoom: Math.max(current.zoom, 1.08) };
     });
-    setStatusMessage("Crash site locked. The core base reserves its six surrounding expansion hexes.");
+    setStatusMessage("Crash site locked. Six surrounding city hexes are reserved.");
   }
 
   function handlePointerDown(event: React.PointerEvent<HTMLCanvasElement>) {

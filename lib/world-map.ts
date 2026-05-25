@@ -313,7 +313,7 @@ function getResourceHint(terrain: TerrainType) {
   const hints: Record<TerrainType, string> = {
     ocean: "Ocean barrier",
     coast: "Food and scrap",
-    wasteland: "Balanced expansion",
+    wasteland: "Balanced",
     "mutated-desert": "Rare minerals",
     "ash-forest": "Biomass cover",
     mountains: "Ore ridges",
