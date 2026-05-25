@@ -28,7 +28,7 @@ export function FactionSelection({
         </p>
       </div>
 
-      <div className="grid items-stretch gap-5 lg:grid-cols-3">
+      <div className="grid items-stretch gap-5 lg:auto-rows-fr lg:grid-cols-3">
         {factions.map((faction) => {
           const isSelected = faction.id === selectedFactionId;
 
@@ -36,7 +36,7 @@ export function FactionSelection({
             <button
               key={faction.id}
               onClick={() => onSelect(faction)}
-              className="group flex text-left"
+              className="group flex h-full text-left"
               type="button"
             >
               <Panel
