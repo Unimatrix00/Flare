@@ -96,15 +96,32 @@ export function generateWorldMap(radius = WORLD_RADIUS): WorldMap {
     }
   }
 
+  const coastKeys = new Set(
+    baseHexes
+      .filter(
+        (hex) =>
+          hex.isLand &&
+          getNeighborCoords(hex).some((neighbor) => !landKeys.has(createHexKey(neighbor))),
+      )
+      .map(createHexKey),
+  );
+
   const hexes = baseHexes.map<WorldHex>((hex) => {
     const key = createHexKey(hex);
-    const isCoast =
-      hex.isLand &&
-      getNeighborCoords(hex).some((neighbor) => !landKeys.has(createHexKey(neighbor)));
+    const neighbors = getNeighborCoords(hex);
+    const isCoast = coastKeys.has(key);
     const terrain = pickTerrain(hex, isCoast, radius);
     const distanceFromPortal = getHexDistance(hex);
     const isPortal = key === "0,0";
-    const isValidStart = isCoast && distanceFromPortal > 58 && terrain !== "mountains";
+    const hasFullCityFootprint = neighbors.every((neighbor) => landKeys.has(createHexKey(neighbor)));
+    const isNearShore = getHexesInRange(hex, 2).some((coord) => coastKeys.has(createHexKey(coord)));
+    const isValidStart =
+      hex.isLand &&
+      !isCoast &&
+      isNearShore &&
+      hasFullCityFootprint &&
+      distanceFromPortal > 58 &&
+      terrain !== "mountains";
 
     return {
       ...hex,
