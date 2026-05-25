@@ -362,7 +362,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
                   <h2 className="mt-2 text-2xl font-black uppercase text-white">
                     Hex {selectedHex.q}:{selectedHex.r}
                   </h2>
-                  <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                  <dl className="mt-4 grid gap-2 text-sm">
                     <Info label="Terrain" value={terrainLabels[selectedHex.terrain]} />
                     <Info label="Danger" value={selectedHex.danger} />
                     <Info label="Signal" value={selectedHex.resourceHint} />
@@ -486,7 +486,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
               Build your base here?
             </h2>
             <p className="mt-4 text-sm leading-6 text-slate-300">
-              Starter base construction is instant. This claims hex {selectedHex.q}:{selectedHex.r}
+              Starter base construction is instant. This claims hex {selectedHex.q}:{selectedHex.r}{" "}
               and reserves the six surrounding city hexes for future base levels.
             </p>
             <div className="mt-5 rounded-2xl border border-cyan-200/20 bg-cyan-300/10 p-4 text-sm font-semibold text-cyan-100">
@@ -759,9 +759,9 @@ function MapBadge({ label, value }: { label: string; value: string }) {
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div>
+    <div className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
       <dt className="text-xs uppercase tracking-[0.22em] text-slate-500">{label}</dt>
-      <dd className="mt-1 font-semibold capitalize text-slate-100">{value}</dd>
+      <dd className="text-right font-semibold capitalize text-slate-100">{value}</dd>
     </div>
   );
 }
