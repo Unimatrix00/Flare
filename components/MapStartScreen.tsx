@@ -77,7 +77,7 @@ const navItems = ["Map", "Base", "Alliance", "Chat", "Missions", "Reports"];
 const allianceSignals = [
   "Alliance beacon: not joined",
   "Server project: FLARE Gate dormant",
-  "Rally limit: locked until base level 10",
+  "Rallies unlock at base level 10",
 ];
 const chatMessages = [
   { channel: "World", text: "Coastal survivors are marking safe landing corridors." },
