@@ -1,19 +1,11 @@
+import { tileById, type RiskLevel, type TileId } from "./tile-data";
+
 export type HexCoord = {
   q: number;
   r: number;
 };
 
-export type TerrainType =
-  | "ocean"
-  | "coast"
-  | "wasteland"
-  | "mutated-desert"
-  | "ash-forest"
-  | "mountains"
-  | "caves"
-  | "ruins"
-  | "crater"
-  | "portal";
+export type TerrainType = TileId;
 
 export type WorldHex = HexCoord & {
   key: string;
@@ -21,16 +13,16 @@ export type WorldHex = HexCoord & {
   isLand: boolean;
   isCoast: boolean;
   isValidStart: boolean;
-  isPortal: boolean;
+  isFlareGate: boolean;
   resourceHint: string;
-  danger: "low" | "medium" | "high" | "extreme";
+  danger: RiskLevel;
 };
 
 export type WorldMap = {
   radius: number;
   hexes: WorldHex[];
   byKey: Map<string, WorldHex>;
-  portalKey: string;
+  flareGateKey: string;
   landHexCount: number;
   oceanHexCount: number;
   validStartCount: number;
@@ -173,16 +165,16 @@ export function generateWorldMap(radius = WORLD_RADIUS): WorldMap {
     const neighbors = getNeighborCoords(hex);
     const isCoast = coastKeys.has(key);
     const terrain = pickTerrain(hex, isCoast, radius);
-    const finalTerrain = key === "0,0" ? "portal" : terrain;
-    const distanceFromPortal = getHexDistance(hex);
-    const isPortal = key === "0,0";
+    const finalTerrain = key === "0,0" ? "flare_gate_site" : terrain;
+    const isFlareGate = key === "0,0";
     const hasFullCityFootprint = neighbors.every((neighbor) => landKeys.has(createHexKey(neighbor)));
     const isWithinStartBand = getHexesInRange(hex, 2).some((coord) => coastKeys.has(createHexKey(coord)));
     const isValidStart =
       hex.isLand &&
       !isCoast &&
       isWithinStartBand &&
-      hasFullCityFootprint;
+      hasFullCityFootprint &&
+      tileById[finalTerrain].canBuildBase;
 
     return {
       ...hex,
@@ -190,9 +182,9 @@ export function generateWorldMap(radius = WORLD_RADIUS): WorldMap {
       terrain: finalTerrain,
       isCoast,
       isValidStart,
-      isPortal,
-      resourceHint: getResourceHint(finalTerrain),
-      danger: getDanger(distanceFromPortal, finalTerrain, isValidStart),
+      isFlareGate,
+      resourceHint: tileById[finalTerrain].purpose,
+      danger: tileById[finalTerrain].riskLevel,
     };
   });
 
@@ -200,7 +192,7 @@ export function generateWorldMap(radius = WORLD_RADIUS): WorldMap {
     radius,
     hexes,
     byKey: new Map(hexes.map((hex) => [hex.key, hex])),
-    portalKey: "0,0",
+    flareGateKey: "0,0",
     landHexCount: hexes.filter((hex) => hex.isLand).length,
     oceanHexCount: hexes.filter((hex) => !hex.isLand).length,
     validStartCount: hexes.filter((hex) => hex.isValidStart).length,
@@ -295,55 +287,18 @@ function pickTerrain(hex: HexCoord & { isLand: boolean }, isCoast: boolean, radi
   }
 
   if ((x > 0.18 && y < 0.18 && noise > -0.28) || (x < -0.15 && y < -0.42 && noise > 0.05)) {
-    return "ash-forest";
+    return "ash_forest";
   }
 
   if (distanceFromPortal < 34 || (x < -0.1 && y > -0.1 && noise < 0.25)) {
-    return noise > 0.52 ? "crater" : "mutated-desert";
+    return noise > 0.52 ? "crater" : "mutated_desert";
   }
 
   if ((x > 0.34 && y > -0.12 && y < 0.44 && noise > 0.28) || (x < -0.22 && y > 0.42 && noise > 0.18)) {
-    return "ruins";
+    return noise > 0.62 ? "broken_satellite_relay" : "ruins";
   }
 
   return "wasteland";
-}
-
-function getResourceHint(terrain: TerrainType) {
-  const hints: Record<TerrainType, string> = {
-    ocean: "Ocean barrier",
-    coast: "Food and scrap",
-    wasteland: "Balanced",
-    "mutated-desert": "Rare minerals",
-    "ash-forest": "Biomass cover",
-    mountains: "Ore ridges",
-    caves: "Hidden salvage",
-    ruins: "Data vaults",
-    crater: "Alien tech",
-    portal: "Portal construction",
-  };
-
-  return hints[terrain];
-}
-
-function getDanger(distanceFromPortal: number, terrain: TerrainType, isValidStart: boolean): WorldHex["danger"] {
-  if (isValidStart || terrain === "coast") {
-    return "low";
-  }
-
-  if (terrain === "portal" || terrain === "crater") {
-    return "extreme";
-  }
-
-  if (distanceFromPortal < 36 || terrain === "caves" || terrain === "mutated-desert") {
-    return "high";
-  }
-
-  if (terrain === "mountains" || terrain === "ruins") {
-    return "medium";
-  }
-
-  return "low";
 }
 
 function getNormalizedPoint({ q, r }: HexCoord, radius: number) {

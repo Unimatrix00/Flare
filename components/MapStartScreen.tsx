@@ -12,6 +12,7 @@ import {
   type TerrainType,
   type WorldHex,
 } from "@/lib/world-map";
+import { tileById } from "@/lib/tile-data";
 
 type MapStartScreenProps = {
   existingBaseSite?: WorldHex;
@@ -38,29 +39,18 @@ const MAX_ZOOM = 8;
 const INITIAL_ZOOM = MIN_ZOOM;
 const SELECTED_SITE_ZOOM = 3.2;
 const terrainColors: Record<TerrainType, string> = {
+  crash_site: "#22d3ee",
   ocean: "#092033",
   coast: "#b8844c",
   wasteland: "#645244",
-  "mutated-desert": "#8f3f28",
-  "ash-forest": "#325c4a",
+  mutated_desert: "#8f3f28",
+  ash_forest: "#325c4a",
   mountains: "#5d6470",
   caves: "#34313d",
   ruins: "#7c6a46",
   crater: "#7f2d38",
-  portal: "#9b5cf6",
-};
-
-const terrainLabels: Record<TerrainType, string> = {
-  ocean: "Ocean",
-  coast: "Coast",
-  wasteland: "Wasteland",
-  "mutated-desert": "Mutated desert",
-  "ash-forest": "Ash forest",
-  mountains: "Mountains",
-  caves: "Caves",
-  ruins: "Ruins",
-  crater: "Crater scar",
-  portal: "FLARE Gate",
+  broken_satellite_relay: "#38bdf8",
+  flare_gate_site: "#9b5cf6",
 };
 
 const baseSectors = [
@@ -86,7 +76,7 @@ const allianceSignals = [
 const chatMessages = [
   { channel: "World", text: "Coastal survivors are marking safe landing corridors." },
   { channel: "Alliance", text: "Join or create an alliance after command alignment." },
-  { channel: "System", text: "Central portal requires server-wide construction." },
+  { channel: "System", text: "The FLARE Gate requires server-wide construction." },
 ];
 
 export function MapStartScreen({ existingBaseSite, onBackToBase, onContinue }: MapStartScreenProps) {
@@ -113,7 +103,11 @@ export function MapStartScreen({ existingBaseSite, onBackToBase, onContinue }: M
       : "Choose any glowing start hex within two hexes of the sea.",
   );
 
-  const selectedHex = selectedKey ? worldMap.byKey.get(selectedKey) : undefined;
+  const selectedHex = selectedKey
+    ? existingBaseSite?.key === selectedKey
+      ? existingBaseSite
+      : worldMap.byKey.get(selectedKey)
+    : undefined;
   const reservedKeys = useMemo(() => {
     if (!selectedHex) {
       return new Set<string>();
@@ -388,7 +382,7 @@ export function MapStartScreen({ existingBaseSite, onBackToBase, onContinue }: M
                     Hex {selectedHex.q}:{selectedHex.r}
                   </h2>
                   <dl className="mt-4 grid gap-2 text-sm">
-                    <Info label="Terrain" value={terrainLabels[selectedHex.terrain]} />
+                    <Info label="Terrain" value={tileById[selectedHex.terrain].displayName} />
                     <Info label="Danger" value={selectedHex.danger} />
                     <Info label="Signal" value={selectedHex.resourceHint} />
                     <Info label="Reserved" value={`${reservedKeys.size} hexes`} />
@@ -610,7 +604,7 @@ function drawMap(
     if (isSelected) {
       strokeHex(context, screenX, screenY, drawSize + 1.8, "rgba(34, 211, 238, 1)", 3);
       drawHex(context, screenX, screenY, drawSize * 0.46, "rgba(34, 211, 238, 0.95)");
-    } else if (hex.isPortal) {
+    } else if (hex.isFlareGate) {
       strokeHex(context, screenX, screenY, drawSize + 1.6, "rgba(216, 180, 254, 0.95)", 2.4);
     } else if (isHovered && (hex.isValidStart || isReserved)) {
       strokeHex(context, screenX, screenY, drawSize + 1.2, "rgba(255, 255, 255, 0.9)", 2);

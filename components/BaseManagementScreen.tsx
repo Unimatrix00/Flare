@@ -5,6 +5,7 @@ import type { BaseSection, BaseSectionId, ConstructionState } from "@/lib/base-d
 import { TRAVEL_MINUTES_PER_HEX, baseSections, formatDuration } from "@/lib/base-data";
 import type { Faction, ResourceMap, Specialist } from "@/lib/game-data";
 import { resourceLabels } from "@/lib/game-data";
+import { tileById } from "@/lib/tile-data";
 import { getHexDistance, type WorldHex } from "@/lib/world-map";
 import { GameButton } from "./ui/GameButton";
 import { Panel } from "./ui/Panel";
@@ -100,7 +101,7 @@ export function BaseManagementScreen({
             <div className="mt-5 space-y-4 text-sm text-slate-300">
               <InfoRow label="Faction" value={faction.name} />
               <InfoRow label="Crash hex" value={`${crashSite.q}:${crashSite.r}`} />
-              <InfoRow label="Terrain" value={crashSite.terrain.replace("-", " ")} />
+              <InfoRow label="Terrain" value={tileById[crashSite.terrain].displayName} />
               <InfoRow label="Specialists" value={specialists.map((specialist) => specialist.name).join(", ")} />
             </div>
           </Panel>

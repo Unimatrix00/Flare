@@ -9,6 +9,7 @@ import { SpecialistSelection } from "@/components/SpecialistSelection";
 import type { BaseSection, ConstructionState } from "@/lib/base-data";
 import type { Faction, ResourceMap, Specialist, SpecialistId } from "@/lib/game-data";
 import { specialists, startingResources } from "@/lib/game-data";
+import { tileById } from "@/lib/tile-data";
 import type { WorldHex } from "@/lib/world-map";
 
 type Screen = "login" | "faction" | "specialists" | "crash-location" | "base" | "world-map";
@@ -63,7 +64,14 @@ export default function Home() {
       return;
     }
 
-    setSelectedCrashSite(site);
+    setSelectedCrashSite({
+      ...site,
+      terrain: "crash_site",
+      isCoast: false,
+      isFlareGate: false,
+      resourceHint: tileById.crash_site.purpose,
+      danger: tileById.crash_site.riskLevel,
+    });
     setResources(applyFactionBonus(selectedFaction));
     setConstruction({});
     setScreen("base");
