@@ -335,7 +335,7 @@ function ScoutHexMap({
         className="relative"
         style={{
           height: maxY - minY + 170,
-          width: maxX - minX + 190,
+          width: maxX - minX + 250,
         }}
       >
         {points.map(({ tile, x, y }) => (
@@ -345,7 +345,7 @@ function ScoutHexMap({
             isMoving={scouting.scout.status === "moving"}
             onScoutMove={onScoutMove}
             tile={tile}
-            x={x - minX + 28}
+            x={x - minX + 88}
             y={y - minY + 28}
           />
         ))}
