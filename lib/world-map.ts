@@ -31,6 +31,8 @@ export type WorldMap = {
   hexes: WorldHex[];
   byKey: Map<string, WorldHex>;
   portalKey: string;
+  landHexCount: number;
+  oceanHexCount: number;
   validStartCount: number;
 };
 
@@ -80,6 +82,7 @@ export function getHexesInRange(center: HexCoord, radius: number) {
 export function generateWorldMap(radius = WORLD_RADIUS): WorldMap {
   const baseHexes: Array<HexCoord & { isLand: boolean }> = [];
   const landKeys = new Set<string>();
+  const worldKeys = new Set<string>();
 
   for (let q = -radius; q <= radius; q += 1) {
     const minR = Math.max(-radius, -q - radius);
@@ -88,10 +91,12 @@ export function generateWorldMap(radius = WORLD_RADIUS): WorldMap {
     for (let r = minR; r <= maxR; r += 1) {
       const coord = { q, r };
       const isLand = isFutureAustraliaLand(coord, radius);
+      const key = createHexKey(coord);
       baseHexes.push({ ...coord, isLand });
+      worldKeys.add(key);
 
       if (isLand) {
-        landKeys.add(createHexKey(coord));
+        landKeys.add(key);
       }
     }
   }
@@ -105,12 +110,26 @@ export function generateWorldMap(radius = WORLD_RADIUS): WorldMap {
       )
       .map(createHexKey),
   );
+  const displayKeys = new Set(landKeys);
 
-  const hexes = baseHexes.map<WorldHex>((hex) => {
+  coastKeys.forEach((key) => {
+    const [q, r] = key.split(",").map(Number);
+
+    getHexesInRange({ q, r }, 2).forEach((coord) => {
+      const rimKey = createHexKey(coord);
+
+      if (worldKeys.has(rimKey) && !landKeys.has(rimKey)) {
+        displayKeys.add(rimKey);
+      }
+    });
+  });
+
+  const hexes = baseHexes.filter((hex) => displayKeys.has(createHexKey(hex))).map<WorldHex>((hex) => {
     const key = createHexKey(hex);
     const neighbors = getNeighborCoords(hex);
     const isCoast = coastKeys.has(key);
     const terrain = pickTerrain(hex, isCoast, radius);
+    const finalTerrain = key === "0,0" ? "portal" : terrain;
     const distanceFromPortal = getHexDistance(hex);
     const isPortal = key === "0,0";
     const hasFullCityFootprint = neighbors.every((neighbor) => landKeys.has(createHexKey(neighbor)));
@@ -126,12 +145,12 @@ export function generateWorldMap(radius = WORLD_RADIUS): WorldMap {
     return {
       ...hex,
       key,
-      terrain: isPortal ? "portal" : terrain,
+      terrain: finalTerrain,
       isCoast,
       isValidStart,
       isPortal,
-      resourceHint: getResourceHint(terrain),
-      danger: getDanger(distanceFromPortal, terrain, isValidStart),
+      resourceHint: getResourceHint(finalTerrain),
+      danger: getDanger(distanceFromPortal, finalTerrain, isValidStart),
     };
   });
 
@@ -140,26 +159,47 @@ export function generateWorldMap(radius = WORLD_RADIUS): WorldMap {
     hexes,
     byKey: new Map(hexes.map((hex) => [hex.key, hex])),
     portalKey: "0,0",
+    landHexCount: hexes.filter((hex) => hex.isLand).length,
+    oceanHexCount: hexes.filter((hex) => !hex.isLand).length,
     validStartCount: hexes.filter((hex) => hex.isValidStart).length,
   };
 }
 
 function isFutureAustraliaLand(coord: HexCoord, radius: number) {
   const { x, y } = getNormalizedPoint(coord, radius);
-  const roughness = valueNoise(coord.q, coord.r) * 0.11;
-  const coreShape = ((x + 0.02) / 0.76) ** 2 + ((y - 0.02) / 0.72) ** 2;
-  const eastBulge = ((x - 0.37) / 0.33) ** 2 + ((y + 0.03) / 0.48) ** 2;
-  const southBulge = ((x + 0.03) / 0.52) ** 2 + ((y - 0.5) / 0.22) ** 2;
-  const northReach = ((x + 0.03) / 0.45) ** 2 + ((y + 0.58) / 0.18) ** 2;
-  const gulfCut = x > -0.18 && x < 0.26 && y < -0.4;
-  const southwestBite = x < -0.48 && y > 0.35;
+  const roughness = valueNoise(coord.q, coord.r) * 0.06;
+  const mainland =
+    ((x + 0.04) / 0.75) ** 2 + ((y - 0.01) / 0.58) ** 2 < 1 + roughness;
+  const westernPlate =
+    ((x + 0.46) / 0.28) ** 2 + ((y - 0.02) / 0.46) ** 2 < 1 + roughness;
+  const eastCoast =
+    ((x - 0.39) / 0.27) ** 2 + ((y + 0.01) / 0.5) ** 2 < 1 + roughness;
+  const topEnd =
+    ((x + 0.08) / 0.42) ** 2 + ((y + 0.57) / 0.18) ** 2 < 1 + roughness;
+  const capeYork =
+    ((x - 0.29) / 0.13) ** 2 + ((y + 0.66) / 0.28) ** 2 < 1 + roughness;
+  const southEast =
+    ((x - 0.34) / 0.2) ** 2 + ((y - 0.52) / 0.18) ** 2 < 1 + roughness;
+  const tasmania =
+    ((x - 0.35) / 0.11) ** 2 + ((y - 0.83) / 0.07) ** 2 < 1 + roughness;
+  const gulfOfCarpentaria =
+    ((x - 0.12) / 0.23) ** 2 + ((y + 0.49) / 0.16) ** 2 < 1;
+  const greatAustralianBight =
+    ((x + 0.04) / 0.36) ** 2 + ((y - 0.61) / 0.13) ** 2 < 1;
+  const sharkBayBite =
+    ((x + 0.63) / 0.13) ** 2 + ((y + 0.04) / 0.2) ** 2 < 1;
+  const northWestShelf =
+    x < -0.55 && y < -0.26;
 
   return (
-    coreShape < 1 + roughness ||
-    eastBulge < 1 + roughness ||
-    southBulge < 1 + roughness ||
-    northReach < 1 + roughness
-  ) && !gulfCut && !southwestBite;
+    mainland ||
+    westernPlate ||
+    eastCoast ||
+    topEnd ||
+    capeYork ||
+    southEast ||
+    tasmania
+  ) && !gulfOfCarpentaria && !greatAustralianBight && !sharkBayBite && !northWestShelf;
 }
 
 function pickTerrain(hex: HexCoord & { isLand: boolean }, isCoast: boolean, radius: number): TerrainType {

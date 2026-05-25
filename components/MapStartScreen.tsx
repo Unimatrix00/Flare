@@ -67,6 +67,23 @@ const baseSectors = [
   "Defense walls",
   "Workshop",
 ];
+const resourceReadout = [
+  { label: "Wreckage", value: "24", tone: "text-orange-100" },
+  { label: "Energy", value: "30", tone: "text-cyan-100" },
+  { label: "Food", value: "20", tone: "text-emerald-100" },
+  { label: "Data", value: "4", tone: "text-violet-100" },
+];
+const navItems = ["Map", "Base", "Alliance", "Chat", "Missions", "Reports"];
+const allianceSignals = [
+  "Alliance beacon: not joined",
+  "Server project: FLARE Gate dormant",
+  "Rally limit: locked until base level 10",
+];
+const chatMessages = [
+  { channel: "World", text: "Coastal survivors are marking safe landing corridors." },
+  { channel: "Alliance", text: "Join or create an alliance after command alignment." },
+  { channel: "System", text: "Central portal requires server-wide construction." },
+];
 
 export function MapStartScreen({ onContinue }: MapStartScreenProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -78,7 +95,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
   const [selectedKey, setSelectedKey] = useState<string>();
   const [hoveredKey, setHoveredKey] = useState<string>();
   const [statusMessage, setStatusMessage] = useState(
-    "Choose a glowing coastal hex for the first crash camp.",
+    "Choose a glowing shore-region hex for the first crash camp.",
   );
 
   const selectedHex = selectedKey ? worldMap.byKey.get(selectedKey) : undefined;
@@ -190,8 +207,8 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
     if (!hex.isValidStart) {
       setStatusMessage(
         hex.isLand
-          ? "Inland tiles are locked for the start. Pick a glowing shore hex."
-          : "Ocean tiles are a boundary for now. Pick a coastal landing zone.",
+          ? "Inland tiles are locked for the start. Pick a glowing shore-region hex."
+          : "The ocean rim is capped at two hexes for performance. Pick land near the shore.",
       );
       return;
     }
@@ -258,29 +275,33 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[1500px] flex-col gap-5 px-4 py-5 lg:px-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.5em] text-orange-200">
-            Future Australia / Server 01
-          </p>
-          <h1 className="mt-3 text-4xl font-black uppercase tracking-[-0.05em] text-white sm:text-6xl">
-            Choose your crash site
-          </h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">
-            Start on the shore, push inland through fog, and build toward the central FLARE Gate.
-          </p>
-        </div>
-        <div className="grid gap-2 text-xs uppercase tracking-[0.24em] text-slate-400 sm:grid-cols-3">
-          <Metric label="Map radius" value={`${worldMap.radius}`} />
-          <Metric label="Coastal starts" value={`${worldMap.validStartCount}`} />
-          <Metric label="Max city" value="7 hexes" />
-        </div>
-      </div>
+    <main className="flex min-h-screen w-full flex-col gap-4 overflow-hidden px-3 py-3 lg:px-4">
+      <CommandHud
+        landHexCount={worldMap.landHexCount}
+        oceanHexCount={worldMap.oceanHexCount}
+        renderedHexCount={worldMap.hexes.length}
+        startCount={worldMap.validStartCount}
+      />
 
-      <div className="grid flex-1 gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid flex-1 gap-4 lg:grid-cols-[76px_minmax(0,1fr)_390px]">
+        <nav className="grid grid-cols-3 gap-2 lg:flex lg:flex-col" aria-label="Main game menu">
+          {navItems.map((item) => (
+            <button
+              key={item}
+              type="button"
+              className={`rounded-2xl border px-3 py-3 text-xs font-black uppercase tracking-[0.2em] transition ${
+                item === "Map"
+                  ? "border-cyan-200/60 bg-cyan-300 text-slate-950 shadow-[0_0_24px_rgba(78,199,255,0.3)]"
+                  : "border-white/10 bg-white/[0.04] text-slate-300 hover:border-cyan-200/40 hover:bg-cyan-300/10"
+              } lg:min-h-20 lg:[writing-mode:vertical-rl]`}
+            >
+              {item}
+            </button>
+          ))}
+        </nav>
+
         <Panel intensity="strong" className="min-h-[620px] overflow-hidden p-0">
-          <div ref={containerRef} className="relative h-[62vh] min-h-[620px] w-full">
+          <div ref={containerRef} className="relative h-[calc(100vh-128px)] min-h-[620px] w-full">
             <canvas
               ref={canvasRef}
               width={canvasSize.width}
@@ -293,12 +314,20 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
             />
             <div className="pointer-events-none absolute left-4 top-4 rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-xs text-slate-300 backdrop-blur">
               <p className="font-bold uppercase tracking-[0.24em] text-cyan-100">Fog enabled</p>
-              <p className="mt-1 max-w-xs">Drag to pan. Scroll to zoom. Glowing shore hexes are valid starts.</p>
+              <p className="mt-1 max-w-xs">
+                Drag to pan. Scroll to zoom. Glowing shore-region hexes are valid starts.
+              </p>
+            </div>
+            <div className="pointer-events-none absolute bottom-4 left-4 grid gap-2 text-xs uppercase tracking-[0.18em] text-slate-300 sm:grid-cols-4">
+              <MapBadge label="Map radius" value={`${worldMap.radius}`} />
+              <MapBadge label="Rendered" value={`${worldMap.hexes.length}`} />
+              <MapBadge label="Starts" value={`${worldMap.validStartCount}`} />
+              <MapBadge label="Ocean rim" value="2 hex cap" />
             </div>
           </div>
         </Panel>
 
-        <aside className="flex flex-col gap-4">
+        <aside className="flex max-h-[calc(100vh-128px)] flex-col gap-4 overflow-y-auto pr-1">
           <Panel className="p-5">
             <p className="text-xs font-bold uppercase tracking-[0.28em] text-cyan-200">
               Landing command
@@ -310,7 +339,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
                 <div>
                   <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Selected hex</p>
                   <h2 className="mt-2 text-2xl font-black uppercase text-white">
-                    Shore {selectedHex.q}:{selectedHex.r}
+                    Hex {selectedHex.q}:{selectedHex.r}
                   </h2>
                   <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                     <Info label="Terrain" value={terrainLabels[selectedHex.terrain]} />
@@ -324,7 +353,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
                   <p className="text-xs uppercase tracking-[0.24em] text-slate-400">No base placed</p>
                   <h2 className="mt-2 text-2xl font-black uppercase text-white">Coastline scan active</h2>
                   <p className="mt-3 text-sm leading-6 text-slate-400">
-                    The interior stays dark until the core base lands and starts revealing nearby hexes.
+                    Future Australia is the main map. The interior stays dark until your core base lands.
                   </p>
                 </div>
               )}
@@ -343,12 +372,50 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
                 variant="ghost"
                 onClick={() => {
                   setSelectedKey(undefined);
-                  setStatusMessage("Choose a glowing coastal hex for the first crash camp.");
+                  setStatusMessage("Choose a glowing shore-region hex for the first crash camp.");
                   setCamera({ x: 0, y: 0, zoom: 0.58 });
                 }}
               >
                 Reset
               </GameButton>
+            </div>
+          </Panel>
+
+          <Panel className="p-5">
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-xs font-bold uppercase tracking-[0.28em] text-cyan-200">
+                Alliance
+              </p>
+              <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                Pending
+              </span>
+            </div>
+            <div className="mt-4 space-y-2 text-sm text-slate-300">
+              {allianceSignals.map((signal) => (
+                <p key={signal} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                  {signal}
+                </p>
+              ))}
+            </div>
+          </Panel>
+
+          <Panel className="p-5">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold uppercase tracking-[0.28em] text-orange-200">Chat</p>
+              <button
+                type="button"
+                className="rounded-full border border-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-300"
+              >
+                Open
+              </button>
+            </div>
+            <div className="mt-4 space-y-2 text-sm">
+              {chatMessages.map((message) => (
+                <p key={`${message.channel}-${message.text}`} className="rounded-xl bg-black/25 px-3 py-2 text-slate-300">
+                  <span className="mr-2 font-bold text-cyan-100">[{message.channel}]</span>
+                  {message.text}
+                </p>
+              ))}
             </div>
           </Panel>
 
@@ -583,11 +650,59 @@ function roundAxial(q: number, r: number): HexCoord {
   return { q: cubeQ, r: cubeR };
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function CommandHud({
+  landHexCount,
+  oceanHexCount,
+  renderedHexCount,
+  startCount,
+}: {
+  landHexCount: number;
+  oceanHexCount: number;
+  renderedHexCount: number;
+  startCount: number;
+}) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
-      <p>{label}</p>
-      <p className="mt-1 text-lg font-black text-white">{value}</p>
+    <header className="grid gap-3 rounded-3xl border border-white/10 bg-slate-950/80 p-3 shadow-[0_18px_80px_rgba(0,0,0,0.25)] backdrop-blur-xl lg:grid-cols-[minmax(260px,0.9fr)_minmax(420px,1.4fr)_minmax(280px,0.7fr)]">
+      <div className="flex items-center gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-200/40 bg-cyan-300/10 text-lg font-black text-cyan-100">
+          F
+        </div>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.42em] text-orange-200">
+            Future Australia / Server 01
+          </p>
+          <h1 className="mt-1 text-2xl font-black uppercase tracking-[-0.04em] text-white">
+            World map
+          </h1>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {resourceReadout.map((resource) => (
+          <div key={resource.label} className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2">
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-slate-500">
+              {resource.label}
+            </p>
+            <p className={`mt-1 text-xl font-black ${resource.tone}`}>{resource.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 text-xs uppercase tracking-[0.18em] text-slate-400">
+        <MapBadge label="Land" value={`${landHexCount}`} />
+        <MapBadge label="Ocean" value={`${oceanHexCount}`} />
+        <MapBadge label="Rendered" value={`${renderedHexCount}`} />
+        <MapBadge label="Starts" value={`${startCount}`} />
+      </div>
+    </header>
+  );
+}
+
+function MapBadge({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 backdrop-blur">
+      <p className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-slate-500">{label}</p>
+      <p className="mt-1 font-black text-white">{value}</p>
     </div>
   );
 }
