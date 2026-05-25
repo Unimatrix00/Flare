@@ -321,29 +321,35 @@ function ScoutHexMap({
 }) {
   const points = scouting.tiles.map((tile) => ({
     tile,
-    x: 82 * (tile.q + tile.r / 2),
-    y: 72 * tile.r,
+    x: 150 * (tile.q + tile.r / 2),
+    y: 126 * tile.r,
   }));
   const minX = Math.min(...points.map((point) => point.x));
   const minY = Math.min(...points.map((point) => point.y));
+  const maxX = Math.max(...points.map((point) => point.x));
   const maxY = Math.max(...points.map((point) => point.y));
 
   return (
-    <div
-      className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-950/80"
-      style={{ height: maxY - minY + 150 }}
-    >
-      {points.map(({ tile, x, y }) => (
-        <ScoutTileCard
-          key={tile.id}
-          canMove={canScoutMoveTo(tile, scouting.scout)}
-          isMoving={scouting.scout.status === "moving"}
-          onScoutMove={onScoutMove}
-          tile={tile}
-          x={x - minX + 22}
-          y={y - minY + 24}
-        />
-      ))}
+    <div className="h-[520px] overflow-auto rounded-3xl border border-white/10 bg-slate-950/80">
+      <div
+        className="relative"
+        style={{
+          height: maxY - minY + 170,
+          width: maxX - minX + 190,
+        }}
+      >
+        {points.map(({ tile, x, y }) => (
+          <ScoutTileCard
+            key={tile.id}
+            canMove={canScoutMoveTo(tile, scouting.scout)}
+            isMoving={scouting.scout.status === "moving"}
+            onScoutMove={onScoutMove}
+            tile={tile}
+            x={x - minX + 28}
+            y={y - minY + 28}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -368,7 +374,7 @@ function ScoutTileCard({
 
   return (
     <div
-      className={`absolute flex h-[88px] w-[116px] flex-col justify-between rounded-2xl border p-2 text-center text-[0.64rem] shadow-lg ${
+      className={`absolute flex h-[112px] w-[132px] flex-col justify-between rounded-2xl border p-3 text-center text-[0.68rem] shadow-lg ${
         tile.isRevealed
           ? tile.isExplored
             ? "border-cyan-200/50 bg-cyan-300/15 text-slate-100"
@@ -378,7 +384,6 @@ function ScoutTileCard({
       style={{
         left: x,
         top: y,
-        clipPath: "polygon(18% 0%, 82% 0%, 100% 50%, 82% 100%, 18% 100%, 0% 50%)",
         zIndex: canMove ? 20 : tile.hasScout ? 15 : tile.isRevealed ? 5 : 1,
       }}
     >
@@ -398,7 +403,7 @@ function ScoutTileCard({
       {tile.hasScout && <p className="font-black text-orange-100">SCOUT</p>}
       {canMove && (
         <button
-          className="relative z-30 rounded-full bg-cyan-300 px-2 py-1 text-[0.58rem] font-black uppercase tracking-[0.08em] text-slate-950 disabled:opacity-40"
+          className="relative z-30 rounded-full bg-cyan-300 px-2 py-1 text-[0.6rem] font-black uppercase tracking-[0.08em] text-slate-950 disabled:opacity-40"
           disabled={isMoving}
           onClick={() => onScoutMove(tile.id)}
           type="button"
