@@ -314,15 +314,15 @@ function pickTerrain(hex: HexCoord & { isLand: boolean }, isCoast: boolean, radi
 function getResourceHint(terrain: TerrainType) {
   const hints: Record<TerrainType, string> = {
     ocean: "Ocean barrier",
-    coast: "Food, scrap, safe landing",
-    wasteland: "Balanced expansion ground",
-    "mutated-desert": "Rare minerals, radiation",
-    "ash-forest": "Biomass and ambush cover",
-    mountains: "Ore and defensive ridges",
-    caves: "Hidden salvage and monsters",
-    ruins: "Data vaults and old-world parts",
-    crater: "Alien tech, extreme hazard",
-    portal: "Server portal construction site",
+    coast: "Food and scrap",
+    wasteland: "Balanced expansion",
+    "mutated-desert": "Rare minerals",
+    "ash-forest": "Biomass cover",
+    mountains: "Ore ridges",
+    caves: "Hidden salvage",
+    ruins: "Data vaults",
+    crater: "Alien tech",
+    portal: "Portal construction",
   };
 
   return hints[terrain];
