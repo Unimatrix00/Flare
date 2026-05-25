@@ -87,7 +87,7 @@ export function BaseManagementScreen({
     (total, assignment) => total + (assignment?.droneCount ?? 0),
     0,
   );
-  const availableWorkerDrones = totalWorkerDrones - assignedWorkerDrones;
+  const availableWorkerDrones = Math.max(0, totalWorkerDrones - assignedWorkerDrones);
   const assignedSpecialistIds = new Set(
     Object.values(assignments)
       .map((assignment) => assignment?.specialistId)
@@ -144,7 +144,7 @@ export function BaseManagementScreen({
               </p>
               <p className="mt-2 text-sm leading-6 text-slate-300">
                 {(buildingLevels.command_core ?? 1) >= 2
-                  ? "Level 2 is online. Your colony has two additional Worker Drones for building assignments."
+                  ? "Level 2 is online. Your colony has 2 additional Worker Drones for building assignments."
                   : "Level 2 costs 500 Alloy, 200 Energy, and 100 Data. Upgrade grants +2 Worker Drones."}
               </p>
             </div>
