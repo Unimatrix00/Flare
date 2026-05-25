@@ -94,6 +94,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: 0.58 });
   const [selectedKey, setSelectedKey] = useState<string>();
   const [hoveredKey, setHoveredKey] = useState<string>();
+  const [isMapReady, setIsMapReady] = useState(false);
   const [statusMessage, setStatusMessage] = useState(
     "Choose a glowing shore-region hex for the first crash camp.",
   );
@@ -169,6 +170,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
       revealedKeys,
       selectedKey,
     });
+    setIsMapReady(true);
   }, [camera, canvasSize, hoveredKey, reservedKeys, revealedKeys, selectedKey, worldMap.hexes]);
 
   function getHexFromPointer(clientX: number, clientY: number) {
@@ -312,6 +314,16 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
               onPointerUp={handlePointerUp}
               onWheel={handleWheel}
             />
+            {!isMapReady && (
+              <div className="absolute inset-0 flex items-center justify-center bg-slate-950">
+                <div className="rounded-3xl border border-cyan-200/30 bg-cyan-300/10 px-6 py-4 text-center shadow-[0_0_40px_rgba(78,199,255,0.18)]">
+                  <p className="text-xs font-bold uppercase tracking-[0.32em] text-cyan-100">
+                    Scanning Future Australia
+                  </p>
+                  <p className="mt-2 text-sm text-slate-300">Building shore map and fog grid.</p>
+                </div>
+              </div>
+            )}
             <div className="pointer-events-none absolute left-4 top-4 rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-xs text-slate-300 backdrop-blur">
               <p className="font-bold uppercase tracking-[0.24em] text-cyan-100">Fog enabled</p>
               <p className="mt-1 max-w-xs">
