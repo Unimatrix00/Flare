@@ -31,8 +31,10 @@ type DragState = {
 };
 
 const HEX_SIZE = 7;
-const MIN_ZOOM = 0.42;
-const MAX_ZOOM = 2.1;
+const MIN_ZOOM = 2.1;
+const MAX_ZOOM = 8;
+const INITIAL_ZOOM = MIN_ZOOM;
+const SELECTED_SITE_ZOOM = 3.2;
 const terrainColors: Record<TerrainType, string> = {
   ocean: "#092033",
   coast: "#b8844c",
@@ -91,12 +93,12 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
   const dragRef = useRef<DragState | undefined>(undefined);
   const worldMap = useMemo(() => generateWorldMap(), []);
   const [canvasSize, setCanvasSize] = useState({ width: 900, height: 640 });
-  const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: 0.58 });
+  const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: INITIAL_ZOOM });
   const [selectedKey, setSelectedKey] = useState<string>();
   const [hoveredKey, setHoveredKey] = useState<string>();
   const [isMapReady, setIsMapReady] = useState(false);
   const [statusMessage, setStatusMessage] = useState(
-    "Choose a glowing shore-region hex for the first crash camp.",
+    "Choose any glowing start hex within two hexes of the sea.",
   );
 
   const selectedHex = selectedKey ? worldMap.byKey.get(selectedKey) : undefined;
@@ -209,7 +211,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
     if (!hex.isValidStart) {
       setStatusMessage(
         hex.isLand
-          ? "Inland tiles are locked for the start. Pick a glowing shore-region hex."
+          ? "Starts must be within two hexes of the sea and reserve a full 7-hex city footprint."
           : "The ocean rim is capped at two hexes for performance. Pick land near the shore.",
       );
       return;
@@ -219,9 +221,9 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
     setCamera((current) => {
       const point = axialToPixel(hex);
 
-      return { x: point.x, y: point.y, zoom: Math.max(current.zoom, 1.08) };
+      return { x: point.x, y: point.y, zoom: Math.max(current.zoom, SELECTED_SITE_ZOOM) };
     });
-    setStatusMessage("Crash site locked. The core base reserves its six surrounding expansion hexes.");
+    setStatusMessage("Crash site locked. Six surrounding city hexes are reserved.");
   }
 
   function handlePointerDown(event: React.PointerEvent<HTMLCanvasElement>) {
@@ -327,7 +329,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
             <div className="pointer-events-none absolute left-4 top-4 rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-xs text-slate-300 backdrop-blur">
               <p className="font-bold uppercase tracking-[0.24em] text-cyan-100">Fog enabled</p>
               <p className="mt-1 max-w-xs">
-                Drag to pan. Scroll to zoom. Glowing shore-region hexes are valid starts.
+                Drag to pan. Scroll to zoom. Glowing hexes within two hexes of the sea are valid starts.
               </p>
             </div>
             <div className="pointer-events-none absolute bottom-4 left-4 grid gap-2 text-xs uppercase tracking-[0.18em] text-slate-300 sm:grid-cols-4">
@@ -373,7 +375,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
 
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
               <GameButton
-                className="flex-1"
+                className={`flex-1 ${selectedHex ? "ring-2 ring-cyan-100/60 ring-offset-2 ring-offset-slate-950" : ""}`}
                 disabled={!selectedHex}
                 onClick={() => selectedHex && onContinue(selectedHex)}
               >
@@ -384,8 +386,8 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
                 variant="ghost"
                 onClick={() => {
                   setSelectedKey(undefined);
-                  setStatusMessage("Choose a glowing shore-region hex for the first crash camp.");
-                  setCamera({ x: 0, y: 0, zoom: 0.58 });
+                  setStatusMessage("Choose any glowing start hex within two hexes of the sea.");
+                  setCamera({ x: 0, y: 0, zoom: INITIAL_ZOOM });
                 }}
               >
                 Reset

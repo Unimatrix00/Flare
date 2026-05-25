@@ -47,6 +47,50 @@ export const HEX_DIRECTIONS: HexCoord[] = [
   { q: 0, r: 1 },
 ];
 
+const AUSTRALIA_OUTLINE = [
+  { x: -0.78, y: 0.3 },
+  { x: -0.86, y: 0.16 },
+  { x: -0.82, y: 0.02 },
+  { x: -0.88, y: -0.12 },
+  { x: -0.78, y: -0.25 },
+  { x: -0.66, y: -0.34 },
+  { x: -0.58, y: -0.43 },
+  { x: -0.47, y: -0.48 },
+  { x: -0.36, y: -0.58 },
+  { x: -0.27, y: -0.48 },
+  { x: -0.16, y: -0.5 },
+  { x: -0.1, y: -0.62 },
+  { x: 0.1, y: -0.57 },
+  { x: 0.04, y: -0.45 },
+  { x: 0.24, y: -0.37 },
+  { x: 0.31, y: -0.53 },
+  { x: 0.35, y: -0.76 },
+  { x: 0.42, y: -0.61 },
+  { x: 0.47, y: -0.69 },
+  { x: 0.51, y: -0.48 },
+  { x: 0.58, y: -0.35 },
+  { x: 0.62, y: -0.2 },
+  { x: 0.72, y: -0.07 },
+  { x: 0.8, y: 0.08 },
+  { x: 0.82, y: 0.24 },
+  { x: 0.76, y: 0.41 },
+  { x: 0.66, y: 0.56 },
+  { x: 0.53, y: 0.67 },
+  { x: 0.39, y: 0.73 },
+  { x: 0.3, y: 0.62 },
+  { x: 0.23, y: 0.68 },
+  { x: 0.12, y: 0.63 },
+  { x: 0.07, y: 0.51 },
+  { x: -0.03, y: 0.45 },
+  { x: -0.14, y: 0.38 },
+  { x: -0.26, y: 0.33 },
+  { x: -0.4, y: 0.37 },
+  { x: -0.52, y: 0.47 },
+  { x: -0.63, y: 0.56 },
+  { x: -0.75, y: 0.54 },
+  { x: -0.83, y: 0.45 },
+];
+
 export function createHexKey({ q, r }: HexCoord) {
   return `${q},${r}`;
 }
@@ -133,14 +177,12 @@ export function generateWorldMap(radius = WORLD_RADIUS): WorldMap {
     const distanceFromPortal = getHexDistance(hex);
     const isPortal = key === "0,0";
     const hasFullCityFootprint = neighbors.every((neighbor) => landKeys.has(createHexKey(neighbor)));
-    const isNearShore = getHexesInRange(hex, 2).some((coord) => coastKeys.has(createHexKey(coord)));
+    const isWithinStartBand = getHexesInRange(hex, 2).some((coord) => coastKeys.has(createHexKey(coord)));
     const isValidStart =
       hex.isLand &&
       !isCoast &&
-      isNearShore &&
-      hasFullCityFootprint &&
-      distanceFromPortal > 58 &&
-      terrain !== "mountains";
+      isWithinStartBand &&
+      hasFullCityFootprint;
 
     return {
       ...hex,
@@ -167,39 +209,66 @@ export function generateWorldMap(radius = WORLD_RADIUS): WorldMap {
 
 function isFutureAustraliaLand(coord: HexCoord, radius: number) {
   const { x, y } = getNormalizedPoint(coord, radius);
-  const roughness = valueNoise(coord.q, coord.r) * 0.06;
-  const mainland =
-    ((x + 0.04) / 0.75) ** 2 + ((y - 0.01) / 0.58) ** 2 < 1 + roughness;
-  const westernPlate =
-    ((x + 0.46) / 0.28) ** 2 + ((y - 0.02) / 0.46) ** 2 < 1 + roughness;
-  const eastCoast =
-    ((x - 0.39) / 0.27) ** 2 + ((y + 0.01) / 0.5) ** 2 < 1 + roughness;
-  const topEnd =
-    ((x + 0.08) / 0.42) ** 2 + ((y + 0.57) / 0.18) ** 2 < 1 + roughness;
-  const capeYork =
-    ((x - 0.29) / 0.13) ** 2 + ((y + 0.66) / 0.28) ** 2 < 1 + roughness;
-  const southEast =
-    ((x - 0.34) / 0.2) ** 2 + ((y - 0.52) / 0.18) ** 2 < 1 + roughness;
-  const tasmania =
-    ((x - 0.35) / 0.11) ** 2 + ((y - 0.83) / 0.07) ** 2 < 1 + roughness;
-  const gulfOfCarpentaria =
-    ((x - 0.12) / 0.23) ** 2 + ((y + 0.49) / 0.16) ** 2 < 1;
-  const greatAustralianBight =
-    ((x + 0.04) / 0.36) ** 2 + ((y - 0.61) / 0.13) ** 2 < 1;
-  const sharkBayBite =
-    ((x + 0.63) / 0.13) ** 2 + ((y + 0.04) / 0.2) ** 2 < 1;
-  const northWestShelf =
-    x < -0.55 && y < -0.26;
+  const inside = isPointInPolygon({ x, y }, AUSTRALIA_OUTLINE);
+  const edgeDistance = getDistanceToOutline({ x, y }, AUSTRALIA_OUTLINE);
+  const coastlineNoise = valueNoise(coord.q * 5 + 3, coord.r * 5 - 11);
 
-  return (
-    mainland ||
-    westernPlate ||
-    eastCoast ||
-    topEnd ||
-    capeYork ||
-    southEast ||
-    tasmania
-  ) && !gulfOfCarpentaria && !greatAustralianBight && !sharkBayBite && !northWestShelf;
+  if (inside) {
+    return edgeDistance > 0.02 || coastlineNoise > -0.5;
+  }
+
+  return edgeDistance < 0.018 && coastlineNoise > 0.58;
+}
+
+function isPointInPolygon(point: { x: number; y: number }, polygon: Array<{ x: number; y: number }>) {
+  let isInside = false;
+
+  for (let index = 0, previous = polygon.length - 1; index < polygon.length; previous = index, index += 1) {
+    const currentPoint = polygon[index];
+    const previousPoint = polygon[previous];
+    const intersects =
+      currentPoint.y > point.y !== previousPoint.y > point.y &&
+      point.x <
+        ((previousPoint.x - currentPoint.x) * (point.y - currentPoint.y)) /
+          (previousPoint.y - currentPoint.y) +
+          currentPoint.x;
+
+    if (intersects) {
+      isInside = !isInside;
+    }
+  }
+
+  return isInside;
+}
+
+function getDistanceToOutline(point: { x: number; y: number }, polygon: Array<{ x: number; y: number }>) {
+  return polygon.reduce((closest, currentPoint, index) => {
+    const nextPoint = polygon[(index + 1) % polygon.length];
+    return Math.min(closest, getDistanceToSegment(point, currentPoint, nextPoint));
+  }, Number.POSITIVE_INFINITY);
+}
+
+function getDistanceToSegment(
+  point: { x: number; y: number },
+  segmentStart: { x: number; y: number },
+  segmentEnd: { x: number; y: number },
+) {
+  const deltaX = segmentEnd.x - segmentStart.x;
+  const deltaY = segmentEnd.y - segmentStart.y;
+  const lengthSquared = deltaX * deltaX + deltaY * deltaY;
+  const ratio = lengthSquared
+    ? Math.max(
+        0,
+        Math.min(
+          1,
+          ((point.x - segmentStart.x) * deltaX + (point.y - segmentStart.y) * deltaY) / lengthSquared,
+        ),
+      )
+    : 0;
+  const projectionX = segmentStart.x + ratio * deltaX;
+  const projectionY = segmentStart.y + ratio * deltaY;
+
+  return Math.hypot(point.x - projectionX, point.y - projectionY);
 }
 
 function pickTerrain(hex: HexCoord & { isLand: boolean }, isCoast: boolean, radius: number): TerrainType {
@@ -243,15 +312,15 @@ function pickTerrain(hex: HexCoord & { isLand: boolean }, isCoast: boolean, radi
 function getResourceHint(terrain: TerrainType) {
   const hints: Record<TerrainType, string> = {
     ocean: "Ocean barrier",
-    coast: "Food, scrap, safe landing",
-    wasteland: "Balanced expansion ground",
-    "mutated-desert": "Rare minerals, radiation",
-    "ash-forest": "Biomass and ambush cover",
-    mountains: "Ore and defensive ridges",
-    caves: "Hidden salvage and monsters",
-    ruins: "Data vaults and old-world parts",
-    crater: "Alien tech, extreme hazard",
-    portal: "Server portal construction site",
+    coast: "Food and scrap",
+    wasteland: "Balanced",
+    "mutated-desert": "Rare minerals",
+    "ash-forest": "Biomass cover",
+    mountains: "Ore ridges",
+    caves: "Hidden salvage",
+    ruins: "Data vaults",
+    crater: "Alien tech",
+    portal: "Portal construction",
   };
 
   return hints[terrain];
