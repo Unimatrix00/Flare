@@ -14,7 +14,9 @@ import {
 } from "@/lib/world-map";
 
 type MapStartScreenProps = {
-  onContinue: (site: WorldHex) => void;
+  existingBaseSite?: WorldHex;
+  onBackToBase?: () => void;
+  onContinue?: (site: WorldHex) => void;
 };
 
 type Camera = {
@@ -87,25 +89,28 @@ const chatMessages = [
   { channel: "System", text: "Central portal requires server-wide construction." },
 ];
 
-export function MapStartScreen({ onContinue }: MapStartScreenProps) {
+export function MapStartScreen({ existingBaseSite, onBackToBase, onContinue }: MapStartScreenProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | undefined>(undefined);
   const worldMap = useMemo(() => generateWorldMap(), []);
+  const isBaseMap = Boolean(existingBaseSite);
   const initialCamera = useMemo(() => {
-    const firstStart = worldMap.hexes.find((hex) => hex.isValidStart) ?? { q: 0, r: 0 };
+    const firstStart = existingBaseSite ?? worldMap.hexes.find((hex) => hex.isValidStart) ?? { q: 0, r: 0 };
     const point = axialToPixel(firstStart);
 
     return { x: point.x, y: point.y, zoom: INITIAL_ZOOM };
-  }, [worldMap]);
+  }, [existingBaseSite, worldMap]);
   const [canvasSize, setCanvasSize] = useState({ width: 900, height: 640 });
   const [camera, setCamera] = useState<Camera>(initialCamera);
-  const [selectedKey, setSelectedKey] = useState<string>();
+  const [selectedKey, setSelectedKey] = useState<string | undefined>(existingBaseSite?.key);
   const [hoveredKey, setHoveredKey] = useState<string>();
   const [isMapReady, setIsMapReady] = useState(false);
   const [isBuildPromptOpen, setIsBuildPromptOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState(
-    "Choose any glowing start hex within two hexes of the sea.",
+    existingBaseSite
+      ? "World map active. Your starter base is selected."
+      : "Choose any glowing start hex within two hexes of the sea.",
   );
 
   const selectedHex = selectedKey ? worldMap.byKey.get(selectedKey) : undefined;
@@ -202,6 +207,26 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
   function handleHexClick(hex: WorldHex | undefined) {
     if (!hex) {
       setStatusMessage("That signal is outside the active server map.");
+      return;
+    }
+
+    if (isBaseMap) {
+      if (hex.key === existingBaseSite?.key) {
+        setSelectedKey(hex.key);
+        setStatusMessage("Starter base selected. Return to Base to manage its six sections.");
+        return;
+      }
+
+      if (reservedKeys.has(hex.key)) {
+        setStatusMessage("Reserved city hex. It unlocks as your base levels up.");
+        return;
+      }
+
+      setStatusMessage(
+        hex.isLand
+          ? "Map movement preview: each hex of travel takes 30 minutes."
+          : "Ocean travel is locked in this prototype.",
+      );
       return;
     }
 
@@ -383,22 +408,35 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
               <GameButton
                 className={`flex-1 ${selectedHex ? "ring-2 ring-cyan-100/60 ring-offset-2 ring-offset-slate-950" : ""}`}
-                disabled={!selectedHex}
-                onClick={() => selectedHex && setIsBuildPromptOpen(true)}
+                disabled={!selectedHex && !isBaseMap}
+                onClick={() => {
+                  if (isBaseMap) {
+                    onBackToBase?.();
+                    return;
+                  }
+
+                  if (selectedHex) {
+                    setIsBuildPromptOpen(true);
+                  }
+                }}
               >
-                Build here
+                {isBaseMap ? "Back to base" : "Build here"}
               </GameButton>
               <GameButton
                 type="button"
                 variant="ghost"
                 onClick={() => {
-                  setSelectedKey(undefined);
+                  setSelectedKey(existingBaseSite?.key);
                   setIsBuildPromptOpen(false);
-                  setStatusMessage("Choose any glowing start hex within two hexes of the sea.");
+                  setStatusMessage(
+                    existingBaseSite
+                      ? "World map active. Your starter base is selected."
+                      : "Choose any glowing start hex within two hexes of the sea.",
+                  );
                   setCamera(initialCamera);
                 }}
               >
-                Reset
+                {isBaseMap ? "Center base" : "Reset"}
               </GameButton>
             </div>
           </Panel>
@@ -476,7 +514,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
         </aside>
       </div>
 
-      {selectedHex && isBuildPromptOpen && (
+      {selectedHex && isBuildPromptOpen && onContinue && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
           <Panel intensity="strong" className="max-w-lg p-6">
             <p className="text-xs font-bold uppercase tracking-[0.32em] text-orange-200">

@@ -11,7 +11,7 @@ import type { Faction, ResourceMap, Specialist, SpecialistId } from "@/lib/game-
 import { specialists, startingResources } from "@/lib/game-data";
 import type { WorldHex } from "@/lib/world-map";
 
-type Screen = "login" | "faction" | "specialists" | "crash-location" | "base";
+type Screen = "login" | "faction" | "specialists" | "crash-location" | "base" | "world-map";
 
 const factionResourceBonus: Record<Faction["id"], Partial<ResourceMap>> = {
   "moon-faction": {
@@ -124,6 +124,15 @@ export default function Home() {
     return <MapStartScreen onContinue={buildBaseAt} />;
   }
 
+  if (screen === "world-map" && selectedCrashSite) {
+    return (
+      <MapStartScreen
+        existingBaseSite={selectedCrashSite}
+        onBackToBase={() => setScreen("base")}
+      />
+    );
+  }
+
   if (!selectedFaction || !selectedCrashSite) {
     return <LoginScreen onLogin={login} />;
   }
@@ -134,6 +143,7 @@ export default function Home() {
       construction={construction}
       crashSite={selectedCrashSite}
       faction={selectedFaction}
+      onOpenMap={() => setScreen("world-map")}
       onReset={resetFtue}
       onStartConstruction={startConstruction}
       resources={resources}

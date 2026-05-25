@@ -16,6 +16,7 @@ type BaseManagementScreenProps = {
   crashSite: WorldHex;
   resources: ResourceMap;
   construction: ConstructionState;
+  onOpenMap: () => void;
   onStartConstruction: (section: BaseSection) => void;
   onReset: () => void;
 };
@@ -29,6 +30,7 @@ export function BaseManagementScreen({
   crashSite,
   resources,
   construction,
+  onOpenMap,
   onStartConstruction,
   onReset,
 }: BaseManagementScreenProps) {
@@ -65,9 +67,12 @@ export function BaseManagementScreen({
             Improve the six base sections next.
           </p>
         </div>
-        <GameButton variant="ghost" onClick={onReset}>
-          Restart FTUE
-        </GameButton>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <GameButton onClick={onOpenMap}>World map</GameButton>
+          <GameButton variant="ghost" onClick={onReset}>
+            Restart FTUE
+          </GameButton>
+        </div>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[0.78fr_1.22fr]">
