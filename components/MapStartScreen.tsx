@@ -65,6 +65,7 @@ const resourceReadout = [
   { label: "Energy", value: "100", tone: "text-cyan-100" },
   { label: "Alloy", value: "250", tone: "text-orange-100" },
   { label: "Data", value: "0", tone: "text-violet-100" },
+  { label: "Blueprints", value: "3", tone: "text-sky-100" },
   { label: "Food", value: "100", tone: "text-emerald-100" },
 ];
 const navItems = ["Map", "Base", "Alliance", "Chat", "Missions", "Reports"];
