@@ -373,7 +373,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
 
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
               <GameButton
-                className="flex-1"
+                className={`flex-1 ${selectedHex ? "ring-2 ring-cyan-100/60 ring-offset-2 ring-offset-slate-950" : ""}`}
                 disabled={!selectedHex}
                 onClick={() => selectedHex && onContinue(selectedHex)}
               >
