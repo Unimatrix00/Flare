@@ -31,8 +31,10 @@ type DragState = {
 };
 
 const HEX_SIZE = 7;
-const MIN_ZOOM = 0.42;
-const MAX_ZOOM = 2.1;
+const MIN_ZOOM = 2.1;
+const MAX_ZOOM = 8;
+const INITIAL_ZOOM = MIN_ZOOM;
+const SELECTED_SITE_ZOOM = 3.2;
 const terrainColors: Record<TerrainType, string> = {
   ocean: "#092033",
   coast: "#b8844c",
@@ -91,7 +93,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
   const dragRef = useRef<DragState | undefined>(undefined);
   const worldMap = useMemo(() => generateWorldMap(), []);
   const [canvasSize, setCanvasSize] = useState({ width: 900, height: 640 });
-  const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: 0.58 });
+  const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: INITIAL_ZOOM });
   const [selectedKey, setSelectedKey] = useState<string>();
   const [hoveredKey, setHoveredKey] = useState<string>();
   const [isMapReady, setIsMapReady] = useState(false);
@@ -219,7 +221,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
     setCamera((current) => {
       const point = axialToPixel(hex);
 
-      return { x: point.x, y: point.y, zoom: Math.max(current.zoom, 1.08) };
+      return { x: point.x, y: point.y, zoom: Math.max(current.zoom, SELECTED_SITE_ZOOM) };
     });
     setStatusMessage("Crash site locked. Six surrounding city hexes are reserved.");
   }
@@ -385,7 +387,7 @@ export function MapStartScreen({ onContinue }: MapStartScreenProps) {
                 onClick={() => {
                   setSelectedKey(undefined);
                   setStatusMessage("Choose any glowing start hex within two hexes of the sea.");
-                  setCamera({ x: 0, y: 0, zoom: 0.58 });
+                  setCamera({ x: 0, y: 0, zoom: INITIAL_ZOOM });
                 }}
               >
                 Reset
