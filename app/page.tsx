@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { ColonyDashboard } from "@/components/ColonyDashboard";
 import { FactionSelection } from "@/components/FactionSelection";
-import { LandingScreen } from "@/components/LandingScreen";
+import { MapStartScreen } from "@/components/MapStartScreen";
 import { SpecialistSelection } from "@/components/SpecialistSelection";
 import type {
   DroneAction,
@@ -14,6 +14,7 @@ import type {
   SpecialistId,
 } from "@/lib/game-data";
 import { specialists, startingResources } from "@/lib/game-data";
+import type { WorldHex } from "@/lib/world-map";
 
 type Screen = "landing" | "faction" | "specialists" | "dashboard";
 
@@ -45,6 +46,7 @@ const factionResourceBonus: Record<Faction["id"], Partial<ResourceMap>> = {
 
 export default function Home() {
   const [screen, setScreen] = useState<Screen>("landing");
+  const [selectedCrashSite, setSelectedCrashSite] = useState<WorldHex>();
   const [selectedFaction, setSelectedFaction] = useState<Faction>();
   const [selectedSpecialistIds, setSelectedSpecialistIds] = useState<SpecialistId[]>([]);
   const [resources, setResources] = useState<ResourceMap>(startingResources);
@@ -97,6 +99,9 @@ export default function Home() {
     setBaseStatus(initialBaseStatus);
     setSiteProgress(0);
     setActivityLog([
+      selectedCrashSite
+        ? `Crash site established on coastal hex ${selectedCrashSite.q}:${selectedCrashSite.r}.`
+        : "Crash site established on the Australian coast.",
       `${selectedFaction.name} command profile loaded.`,
       `${selectedSpecialists.map((specialist) => specialist.name).join(", ")} assigned to crash recovery.`,
     ]);
@@ -157,6 +162,7 @@ export default function Home() {
 
   function resetRun() {
     setScreen("landing");
+    setSelectedCrashSite(undefined);
     setSelectedFaction(undefined);
     setSelectedSpecialistIds([]);
     setResources(startingResources);
@@ -192,7 +198,14 @@ export default function Home() {
   }
 
   if (screen === "landing") {
-    return <LandingScreen onStart={() => setScreen("faction")} />;
+    return (
+      <MapStartScreen
+        onContinue={(site) => {
+          setSelectedCrashSite(site);
+          setScreen("faction");
+        }}
+      />
+    );
   }
 
   if (screen === "faction") {
@@ -217,7 +230,14 @@ export default function Home() {
   }
 
   if (!selectedFaction) {
-    return <LandingScreen onStart={() => setScreen("faction")} />;
+    return (
+      <MapStartScreen
+        onContinue={(site) => {
+          setSelectedCrashSite(site);
+          setScreen("faction");
+        }}
+      />
+    );
   }
 
   return (
