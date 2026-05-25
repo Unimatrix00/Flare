@@ -241,7 +241,7 @@ export function BaseManagementScreen({
           </Panel>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="grid gap-4 2xl:grid-cols-2">
           {buildingDefinitions
             .filter(
               (building) =>
@@ -507,7 +507,7 @@ function BuildingCard({
       </div>
       <p className="mt-3 text-sm leading-6 text-slate-300">{building.purpose}</p>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
+      <div className="mt-4 grid gap-3">
         <OutputPanel label="Base output" output={baseOutput} />
         <OutputPanel label="Final output" output={finalOutput} highlight />
       </div>
