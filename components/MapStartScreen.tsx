@@ -62,10 +62,10 @@ const baseSectors = [
   "Workshop",
 ];
 const resourceReadout = [
-  { label: "Wreckage", value: "24", tone: "text-orange-100" },
-  { label: "Energy", value: "30", tone: "text-cyan-100" },
-  { label: "Food", value: "20", tone: "text-emerald-100" },
-  { label: "Data", value: "4", tone: "text-violet-100" },
+  { label: "Energy", value: "100", tone: "text-cyan-100" },
+  { label: "Alloy", value: "250", tone: "text-orange-100" },
+  { label: "Data", value: "0", tone: "text-violet-100" },
+  { label: "Food", value: "100", tone: "text-emerald-100" },
 ];
 const navItems = ["Map", "Base", "Alliance", "Chat", "Missions", "Reports"];
 const allianceSignals = [

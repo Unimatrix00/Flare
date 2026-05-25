@@ -22,7 +22,7 @@ type BaseManagementScreenProps = {
   onReset: () => void;
 };
 
-const resourceKeys = ["wreckage", "energy", "food", "data"] as const;
+const resourceKeys = ["energy", "alloy", "data", "blueprints", "food"] as const;
 
 export function BaseManagementScreen({
   commanderName,

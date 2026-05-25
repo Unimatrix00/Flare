@@ -17,13 +17,13 @@ type ColonyDashboardProps = {
   baseStatus: BaseStatus;
   siteProgress: number;
   activityLog: string[];
-  buildCost: Pick<ResourceMap, "wreckage" | "energy">;
+  buildCost: Pick<ResourceMap, "alloy" | "energy">;
   onRunDroneAction: (action: DroneAction) => void;
   onBuildBase: () => void;
   onReset: () => void;
 };
 
-const resourceKeys: ResourceKey[] = ["wreckage", "energy", "food", "data"];
+const resourceKeys: ResourceKey[] = ["energy", "alloy", "data", "blueprints", "food"];
 
 function canAfford(resources: ResourceMap, effects: Partial<ResourceMap>) {
   return Object.entries(effects).every(([key, value]) => {
@@ -45,7 +45,7 @@ export function ColonyDashboard({
   onReset,
 }: ColonyDashboardProps) {
   const canBuildBase =
-    resources.wreckage >= buildCost.wreckage && resources.energy >= buildCost.energy;
+    resources.alloy >= buildCost.alloy && resources.energy >= buildCost.energy;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-7xl px-6 py-8">
@@ -119,7 +119,7 @@ export function ColonyDashboard({
               >
                 {baseStatus.name === "Starter Base"
                   ? "Base online"
-                  : `Build starter base (${buildCost.wreckage}W / ${buildCost.energy}E)`}
+                  : `Build starter base (${buildCost.alloy}A / ${buildCost.energy}E)`}
               </GameButton>
             </Panel>
 

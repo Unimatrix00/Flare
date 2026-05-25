@@ -28,7 +28,7 @@ export const baseSections: BaseSection[] = [
     id: "material-fabricator",
     name: "Material Fabricator",
     role: "Industry",
-    description: "Turns wreckage and raw ore into base plates, conduits, and expansion frames.",
+    description: "Turns salvage and raw ore into alloy plates, conduits, and expansion frames.",
     buildHours: 1,
   },
   {

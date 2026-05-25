@@ -1,6 +1,11 @@
-export type ResourceKey = "wreckage" | "energy" | "food" | "data";
+import { resourceById, startingResources, type ResourceAmount, type ResourceId } from "./game/resources";
+import { specialistDefinitions, type SpecialistId } from "./game/specialists";
 
-export type ResourceMap = Record<ResourceKey, number>;
+export type ResourceKey = ResourceId;
+
+export type ResourceMap = ResourceAmount;
+
+export type { SpecialistId };
 
 export type FactionId = "moon-faction" | "earth-survivors" | "rebel-fleet";
 
@@ -11,14 +16,6 @@ export type Faction = {
   bonus: string;
   signal: string;
 };
-
-export type SpecialistId =
-  | "scientist"
-  | "engineer"
-  | "pilot"
-  | "soldier"
-  | "medic"
-  | "scavenger";
 
 export type Specialist = {
   id: SpecialistId;
@@ -56,56 +53,19 @@ export const factions: Faction[] = [
     name: "Rebel Fleet",
     description:
       "A fractured armada of defectors and smugglers who trust speed, improvisation, and black-box tech.",
-    bonus: "+10 starting Wreckage from extra salvage pods.",
+    bonus: "+10 starting Alloy from extra salvage pods.",
     signal: "FREE WAKE",
   },
 ];
 
-export const specialists: Specialist[] = [
-  {
-    id: "scientist",
-    name: "Scientist",
-    role: "Analysis",
-    bonus: "+2 Data from research and relay recovery.",
-  },
-  {
-    id: "engineer",
-    name: "Engineer",
-    role: "Construction",
-    bonus: "Starter base upgrades cost 5 less Wreckage.",
-  },
-  {
-    id: "pilot",
-    name: "Pilot",
-    role: "Drone Ops",
-    bonus: "Drone actions cost 1 less Energy.",
-  },
-  {
-    id: "soldier",
-    name: "Soldier",
-    role: "Security",
-    bonus: "Exploration raises base security.",
-  },
-  {
-    id: "medic",
-    name: "Medic",
-    role: "Recovery",
-    bonus: "+2 Food when gathering supplies.",
-  },
-  {
-    id: "scavenger",
-    name: "Scavenger",
-    role: "Salvage",
-    bonus: "+3 Wreckage from salvage runs.",
-  },
-];
+export const specialists: Specialist[] = specialistDefinitions.map((specialist) => ({
+  id: specialist.id,
+  name: specialist.displayName,
+  role: specialist.role,
+  bonus: `${specialist.description} Correct building assignment: +${specialist.correctBuildingBonusPercent}% output.`,
+}));
 
-export const startingResources: ResourceMap = {
-  wreckage: 24,
-  energy: 30,
-  food: 20,
-  data: 4,
-};
+export { startingResources };
 
 export const droneActions: DroneAction[] = [
   {
@@ -113,14 +73,14 @@ export const droneActions: DroneAction[] = [
     label: "Salvage wreckage",
     description: "Strip hull plates, cabling, and still-warm reactor shielding from the crash scar.",
     effects: {
-      wreckage: 18,
+      alloy: 18,
       energy: -4,
     },
   },
   {
     id: "scout",
     label: "Scout nearby area",
-    description: "Send a low-flight drone over the red dust perimeter toward broken city lights.",
+    description: "Send a scout drone over the red dust perimeter toward broken city lights.",
     effects: {
       energy: -6,
       data: 9,
@@ -146,9 +106,6 @@ export const droneActions: DroneAction[] = [
   },
 ];
 
-export const resourceLabels: Record<ResourceKey, string> = {
-  wreckage: "Wreckage",
-  energy: "Energy",
-  food: "Food",
-  data: "Data",
-};
+export const resourceLabels: Record<ResourceKey, string> = Object.fromEntries(
+  Object.entries(resourceById).map(([id, resource]) => [id, resource.displayName]),
+) as Record<ResourceKey, string>;

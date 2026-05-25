@@ -22,7 +22,7 @@ const factionResourceBonus: Record<Faction["id"], Partial<ResourceMap>> = {
     food: 10,
   },
   "rebel-fleet": {
-    wreckage: 10,
+    alloy: 10,
   },
 };
 
